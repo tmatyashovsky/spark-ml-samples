@@ -1,6 +1,7 @@
 package com.lohika.morning.ml.api.controller;
 
 import com.lohika.morning.ml.api.service.CatDogService;
+import com.lohika.morning.ml.api.service.LyricsService;
 import com.lohika.morning.ml.api.service.MnistService;
 import com.lohika.morning.ml.api.service.DouService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class TrainController {
 
     @Autowired
     private MnistService mnistService;
+
+    @Autowired
+    private LyricsService lyricsService;
 
     @RequestMapping(value = "/train_cats_dogs", method = RequestMethod.GET)
     ResponseEntity trainCatDogClassificationModel() {
@@ -43,6 +47,12 @@ public class TrainController {
     @RequestMapping(value = "/train_dou_clustering", method = RequestMethod.GET)
     ResponseEntity trainDouKMeans() {
         douService.useKMeans();
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/train_lyrics", method = RequestMethod.GET)
+    ResponseEntity trainDarkLyrics() {
+        lyricsService.classifyLyrics();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
