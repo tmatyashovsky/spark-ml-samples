@@ -3,12 +3,13 @@ package com.lohika.morning.ml.spark.driver.service;
 import com.lohika.morning.ml.spark.distributed.library.function.map.dou.ToLabeledPointUsing2Features;
 import com.lohika.morning.ml.spark.distributed.library.function.map.dou.ToLabeledPointUsing3Features;
 import com.lohika.morning.ml.spark.distributed.library.function.map.dou.ToVectorRowUsing3Features;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.ml.feature.LabeledPoint;
 import org.apache.spark.ml.linalg.VectorUDT;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
@@ -53,11 +54,9 @@ public class DouUtilityService {
     private Dataset<Row> readRawTrainingSet() {
         return sparkSession
                 .read()
-                .format("com.databricks.spark.csv")
                 .option("header", "true")
-                .option("inferSchema", "true")
                 .schema(getTrainingSetStructType())
-                .load(douTrainingSetCsvFilePath);
+                .csv(douTrainingSetCsvFilePath);
     }
 
     private StructType getTrainingSetStructType() {
@@ -83,29 +82,25 @@ public class DouUtilityService {
         });
     }
 
-    private JavaRDD<LabeledPoint> toLabeledPointUsing2Features(Dataset<Row> training) {
-        return training.javaRDD().map(new ToLabeledPointUsing2Features());
+    private Dataset<LabeledPoint> toLabeledPointUsing2Features(Dataset<Row> training) {
+        return training.map(new ToLabeledPointUsing2Features(), Encoders.bean(LabeledPoint.class));
     }
 
-    private JavaRDD<LabeledPoint> toLabeledPointUsing3Features(Dataset<Row> training) {
-        return training.javaRDD().map(new ToLabeledPointUsing3Features());
+    private Dataset<LabeledPoint> toLabeledPointUsing3Features(Dataset<Row> training) {
+        return training.map(new ToLabeledPointUsing3Features(), Encoders.bean(LabeledPoint.class));
     }
 
-    private JavaRDD<Row> toVectorUsing3Features(Dataset<Row> training) {
-        return training.javaRDD().map(new ToVectorRowUsing3Features());
+    private Dataset<Row> toVectorUsing3Features(Dataset<Row> training) {
+        StructField[] fields = {DataTypes.createStructField("features", new VectorUDT(), false)};
+        StructType schema = DataTypes.createStructType(fields);
+        return training.map(new ToVectorRowUsing3Features(), RowEncoder.apply(schema));
     }
 
-    private void labeledPointsToParquet(JavaRDD<LabeledPoint> inputDataAsRDD, String outputFilePath) {
-        Dataset<Row> labeledPoints = sparkSession.createDataFrame(inputDataAsRDD, LabeledPoint.class);
-
+    private void labeledPointsToParquet(Dataset<LabeledPoint> labeledPoints, String outputFilePath) {
         labeledPoints.write().parquet(outputFilePath);
     }
 
-    public void vectorsToParquet(JavaRDD<Row> inputDataAsRDD, String outputFilePath) {
-        StructField[] fields = {new StructField("features", new VectorUDT(), false, Metadata.empty())};
-        StructType schema = new StructType(fields);
-        Dataset<Row> vectors = sparkSession.createDataFrame(inputDataAsRDD, schema);
-
+    public void vectorsToParquet(Dataset<Row> vectors, String outputFilePath) {
         vectors.write().parquet(outputFilePath);
     }
 }

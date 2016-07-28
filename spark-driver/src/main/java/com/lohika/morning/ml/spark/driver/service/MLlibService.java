@@ -4,7 +4,6 @@ import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifyLog
 import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifyNaiveBayesModel;
 import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifySVMModel;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.classification.*;
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics;
 import org.apache.spark.mllib.evaluation.MulticlassMetrics;
@@ -26,102 +25,102 @@ public class MLlibService {
     private MLlibUtilityService utilityService;
 
     public void trainLogisticRegression(String trainingSetParquetFilePath, String testSetParquetFilePath, int numClasses) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
             trainingSetParquetFilePath, testSetParquetFilePath);
 
         trainLogisticRegression(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numClasses);
     }
 
     public void trainLogisticRegression(String fullSetParquetFilePath, int numClasses) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet =
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet =
             getTrainingAndTestDatasets(fullSetParquetFilePath);
 
         trainLogisticRegression(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numClasses);
     }
 
     public void trainNaiveBayes(String trainingSetParquetFilePath, String testSetParquetFilePath) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
                 trainingSetParquetFilePath, testSetParquetFilePath);
 
         trainNaiveBayes(trainingAndTestDataSet._1(), trainingAndTestDataSet._2());
     }
 
     public void trainNaiveBayes(String fullSetParquetFilePath) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(fullSetParquetFilePath);
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(fullSetParquetFilePath);
 
         trainNaiveBayes(trainingAndTestDataSet._1(), trainingAndTestDataSet._2());
     }
 
     public void trainSVM(String trainingSetParquetFilePath, String testSetParquetFilePath, int numIterations) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
                 trainingSetParquetFilePath, testSetParquetFilePath);
 
         trainSVM(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numIterations);
     }
 
     public void trainSVM(String fullSetParquetFilePath, int numIterations) {
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(fullSetParquetFilePath);
+        Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(fullSetParquetFilePath);
 
         trainSVM(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numIterations);
     }
 
-    private Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(final String fullSetParquetFilePath) {
+    private Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> getTrainingAndTestDatasets(final String fullSetParquetFilePath) {
         Dataset<Row> fullSetDataset = sparkSession.read().parquet(fullSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> fullSet = utilityService.parquetToLabeledPoint(fullSetDataset);
+        Dataset<LabeledPoint> fullSet = utilityService.parquetToLabeledPoint(fullSetDataset);
 
         // Split initial RDD into two... [70% training data, 30% testing data].
-        JavaRDD<LabeledPoint> trainingSet = fullSet.sample(false, 0.7, 0L);
+        Dataset<LabeledPoint> trainingSet = fullSet.sample(false, 0.7, 0L);
         trainingSet.cache();
         trainingSet.count();
 
-        JavaRDD<LabeledPoint> testSet = fullSet.subtract(trainingSet);
+        Dataset<LabeledPoint> testSet = fullSet.except(trainingSet);
 
         return new Tuple2<>(trainingSet, testSet);
     }
 
-    private Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(
+    private Tuple2<Dataset<LabeledPoint>, Dataset<LabeledPoint>> getTrainingAndTestDatasets(
             final String trainingSetParquetFilePath, final String testSetParquetFilePath) {
         Dataset<Row> trainingSetDataFrame =sparkSession.read().parquet(trainingSetParquetFilePath);
         trainingSetDataFrame.cache();
         trainingSetDataFrame.count();
 
-        JavaRDD<LabeledPoint> trainingSet = utilityService.parquetToLabeledPoint(trainingSetDataFrame);
+        Dataset<LabeledPoint> trainingSet = utilityService.parquetToLabeledPoint(trainingSetDataFrame);
 
         Dataset<Row> testSetDataFrame = sparkSession.read().parquet(testSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> testSet = utilityService.parquetToLabeledPoint(testSetDataFrame);
+        Dataset<LabeledPoint> testSet = utilityService.parquetToLabeledPoint(testSetDataFrame);
 
         return new Tuple2<>(trainingSet, testSet);
     }
 
-    private void trainLogisticRegression(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numClasses) {
+    private void trainLogisticRegression(Dataset<LabeledPoint> trainingSet, Dataset<LabeledPoint> testSet, int numClasses) {
         // Run training algorithm to build the model.
         final LogisticRegressionModel logisticRegression =  new LogisticRegressionWithLBFGS()
                 .setNumClasses(numClasses)
                 .run(trainingSet.rdd());
 
-        JavaPairRDD<Object, Object> predictionAndLabels = testSet.mapToPair(
+        JavaPairRDD<Object, Object> predictionAndLabels = testSet.toJavaRDD().mapToPair(
             new VerifyLogisticRegressionModel(logisticRegression));
 
         System.out.println("Logistic regression precision = " + getMulticlassModelPrecision(predictionAndLabels));
     }
 
-    private void trainNaiveBayes(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet) {
+    private void trainNaiveBayes(Dataset<LabeledPoint> trainingSet, Dataset<LabeledPoint> testSet) {
         // Run training algorithm to build the model.
         final NaiveBayesModel naiveBayesModel = NaiveBayes.train(trainingSet.rdd(), 1.0);
 
-        JavaPairRDD<Object, Object> predictionAndLabels = testSet.mapToPair(
+        JavaPairRDD<Object, Object> predictionAndLabels = testSet.toJavaRDD().mapToPair(
             new VerifyNaiveBayesModel(naiveBayesModel));
 
         System.out.println("Naive Bayes precision = " + getMulticlassModelPrecision(predictionAndLabels));
     }
 
-    private void trainSVM(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numIterations) {
+    private void trainSVM(Dataset<LabeledPoint> trainingSet, Dataset<LabeledPoint> testSet, int numIterations) {
         // Run training algorithm to build the model.
         final SVMModel svmModel = SVMWithSGD.train(trainingSet.rdd(), numIterations);
 
-        JavaPairRDD<Object, Object> predictionAndLabels = testSet.mapToPair(
+        JavaPairRDD<Object, Object> predictionAndLabels = testSet.toJavaRDD().mapToPair(
                 new VerifySVMModel(svmModel));
 
         System.out.println("SVM area Under ROC = " + getBinaryClassificationModelPrecision(predictionAndLabels));
