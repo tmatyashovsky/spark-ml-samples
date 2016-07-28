@@ -5,7 +5,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -35,8 +34,8 @@ public class ImageServiceTest extends BaseTest {
                 .option("inferSchema", "true")
                 .load(catForTestingCsvFilePath.toString());
 
-        JavaRDD<LabeledPoint> catForTestingFromCsvRDD = utilityService.csvToLabeledPoint(catForTestingFromCsv);
-        List<LabeledPoint> expectedResultForCatFromCsv = catForTestingFromCsvRDD.collect();
+        Dataset<LabeledPoint> catForTestingFromCsvRDD = utilityService.csvToLabeledPoint(catForTestingFromCsv);
+        List<LabeledPoint> expectedResultForCatFromCsv = catForTestingFromCsvRDD.collectAsList();
 
         assertEquals(1, expectedResultForCatFromCsv.size());
         assertEquals(10000, expectedResultForCatFromCsv.get(0).features().size());
@@ -48,8 +47,8 @@ public class ImageServiceTest extends BaseTest {
 
         Dataset<Row> catForTestingFromParquet = getSparkSession().read().parquet(catForTestingParquetFilePath.toString());
 
-        JavaRDD<LabeledPoint> catForTestingFromParquetRDD = utilityService.parquetToLabeledPoint(catForTestingFromParquet);
-        List<LabeledPoint> expectedResultForCatFromParquet = catForTestingFromParquetRDD.collect();
+        Dataset<LabeledPoint> catForTestingFromParquetRDD = utilityService.parquetToLabeledPoint(catForTestingFromParquet);
+        List<LabeledPoint> expectedResultForCatFromParquet = catForTestingFromParquetRDD.collectAsList();
 
         assertEquals(1, expectedResultForCatFromParquet.size());
         assertEquals(10000, expectedResultForCatFromParquet.get(0).features().size());

@@ -10,7 +10,6 @@ dependencies {
     compile("org.apache.spark:spark-core_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("org.apache.spark:spark-sql_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("org.apache.spark:spark-mllib_$apacheSparkScalaVersion:$apacheSparkVersion")
-    compile("com.databricks:spark-csv_$apacheSparkScalaVersion:$databricksSparkCsvVersion")
 
     compile("org.slf4j:slf4j-api:$slf4jVersion")
     compile("ch.qos.logback:logback-classic:$logbackVersion")
