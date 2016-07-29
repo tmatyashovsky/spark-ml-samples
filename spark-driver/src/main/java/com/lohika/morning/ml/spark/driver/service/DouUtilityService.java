@@ -9,6 +9,7 @@ import org.apache.spark.ml.linalg.VectorUDT;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
@@ -53,11 +54,9 @@ public class DouUtilityService {
     private Dataset<Row> readRawTrainingSet() {
         return sparkSession
                 .read()
-                .format("com.databricks.spark.csv")
                 .option("header", "true")
-                .option("inferSchema", "true")
                 .schema(getTrainingSetStructType())
-                .load(douTrainingSetCsvFilePath);
+                .csv(douTrainingSetCsvFilePath);
     }
 
     private StructType getTrainingSetStructType() {

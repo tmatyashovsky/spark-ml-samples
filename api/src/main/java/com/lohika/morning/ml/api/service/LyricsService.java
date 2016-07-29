@@ -8,14 +8,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class LyricsService {
 
-    @Value("${lyrics.training.set.txt.file.path}")
-    private String douTrainingSetParquetVectorFilePath;
+    @Value("${lyrics.training.set.directory.path}")
+    private String lyricsTrainingSetDirectoryPath;
 
     @Autowired
     private TextService textService;
 
     public void classifyLyrics() {
-        textService.classifyDarkLyrics(douTrainingSetParquetVectorFilePath);
+        textService.classifyDarkLyrics(lyricsTrainingSetDirectoryPath);
     }
 
 }

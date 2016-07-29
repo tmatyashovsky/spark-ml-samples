@@ -68,8 +68,12 @@ public class MLlibService {
     private Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(final String fullSetParquetFilePath) {
         Dataset<Row> fullSetDataset = sparkSession.read().parquet(fullSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> fullSet = utilityService.parquetToLabeledPoint(fullSetDataset);
+        JavaRDD<LabeledPoint> fullSet = utilityService.rowToLabeledPoint(fullSetDataset);
 
+        return getTrainingAndTestDatasets(fullSet);
+    }
+
+    public Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(JavaRDD<LabeledPoint> fullSet) {
         // Split initial RDD into two... [70% training data, 30% testing data].
         JavaRDD<LabeledPoint> trainingSet = fullSet.sample(false, 0.7, 0L);
         trainingSet.cache();
@@ -86,25 +90,27 @@ public class MLlibService {
         trainingSetDataFrame.cache();
         trainingSetDataFrame.count();
 
-        JavaRDD<LabeledPoint> trainingSet = utilityService.parquetToLabeledPoint(trainingSetDataFrame);
+        JavaRDD<LabeledPoint> trainingSet = utilityService.rowToLabeledPoint(trainingSetDataFrame);
 
         Dataset<Row> testSetDataFrame = sparkSession.read().parquet(testSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> testSet = utilityService.parquetToLabeledPoint(testSetDataFrame);
+        JavaRDD<LabeledPoint> testSet = utilityService.rowToLabeledPoint(testSetDataFrame);
 
         return new Tuple2<>(trainingSet, testSet);
     }
 
-    private void trainLogisticRegression(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numClasses) {
+    public LogisticRegressionModel trainLogisticRegression(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numClasses) {
         // Run training algorithm to build the model.
-        final LogisticRegressionModel logisticRegression =  new LogisticRegressionWithLBFGS()
+        final LogisticRegressionModel logisticRegressionModel =  new LogisticRegressionWithLBFGS()
                 .setNumClasses(numClasses)
                 .run(trainingSet.rdd());
 
         JavaPairRDD<Object, Object> predictionAndLabels = testSet.mapToPair(
-            new VerifyLogisticRegressionModel(logisticRegression));
+            new VerifyLogisticRegressionModel(logisticRegressionModel));
 
         System.out.println("Logistic regression precision = " + getMulticlassModelPrecision(predictionAndLabels));
+
+        return logisticRegressionModel;
     }
 
     private void trainNaiveBayes(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet) {

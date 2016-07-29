@@ -48,7 +48,7 @@ public class ImageServiceTest extends BaseTest {
 
         Dataset<Row> catForTestingFromParquet = getSparkSession().read().parquet(catForTestingParquetFilePath.toString());
 
-        JavaRDD<LabeledPoint> catForTestingFromParquetRDD = utilityService.parquetToLabeledPoint(catForTestingFromParquet);
+        JavaRDD<LabeledPoint> catForTestingFromParquetRDD = utilityService.rowToLabeledPoint(catForTestingFromParquet);
         List<LabeledPoint> expectedResultForCatFromParquet = catForTestingFromParquetRDD.collect();
 
         assertEquals(1, expectedResultForCatFromParquet.size());

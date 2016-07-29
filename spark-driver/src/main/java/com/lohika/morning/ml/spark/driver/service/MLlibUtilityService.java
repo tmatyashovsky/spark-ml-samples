@@ -1,7 +1,7 @@
 package com.lohika.morning.ml.spark.driver.service;
 
-import com.lohika.morning.ml.spark.distributed.library.function.map.generic.MapCsvToLabeledPoint;
-import com.lohika.morning.ml.spark.distributed.library.function.map.generic.MapParquetToLabeledPoint;
+import com.lohika.morning.ml.spark.distributed.library.function.map.generic.mllib.MapCsvToMLlibLabeledPoint;
+import com.lohika.morning.ml.spark.distributed.library.function.map.generic.mllib.MapRowToMLlibLabeledPoint;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.sql.Dataset;
@@ -31,10 +31,10 @@ public class MLlibUtilityService {
     }
 
     public JavaRDD<LabeledPoint> csvToLabeledPoint(Dataset<Row> csvRow) {
-        return csvRow.javaRDD().map(new MapCsvToLabeledPoint());
+        return csvRow.javaRDD().map(new MapCsvToMLlibLabeledPoint());
     }
 
-    public JavaRDD<LabeledPoint> parquetToLabeledPoint(Dataset<Row> parquetRow) {
-        return parquetRow.javaRDD().map(new MapParquetToLabeledPoint());
+    public JavaRDD<LabeledPoint> rowToLabeledPoint(Dataset<Row> parquetRow) {
+        return parquetRow.javaRDD().map(new MapRowToMLlibLabeledPoint());
     }
 }
