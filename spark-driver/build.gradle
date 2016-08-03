@@ -12,6 +12,12 @@ dependencies {
     compile("org.apache.spark:spark-mllib_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("master:spark-stemming_2.10:0.1.1")
 
+//    compile ("org.deeplearning4j:deeplearning4j-core:0.4.0")
+//    compile ("org.deeplearning4j:dl4j-spark_2.11:0.4.0")
+//    compile ("org.nd4j:nd4j-native:0.4.0")
+//    compile ("org.nd4j:nd4j-native-platform:0.4.0")
+//    compile ("org.nd4j:nd4j-native-api:0.4.0")
+
     compile("org.slf4j:slf4j-api:$slf4jVersion")
     compile("ch.qos.logback:logback-classic:$logbackVersion")
     compile("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")

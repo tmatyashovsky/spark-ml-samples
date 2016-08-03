@@ -105,10 +105,14 @@ public class MLlibService {
                 .setNumClasses(numClasses)
                 .run(trainingSet.rdd());
 
-        JavaPairRDD<Object, Object> predictionAndLabels = testSet.mapToPair(
+        JavaPairRDD<Object, Object> predictionAndLabelsForTestSet = testSet.mapToPair(
             new VerifyLogisticRegressionModel(logisticRegressionModel));
 
-        System.out.println("Logistic regression precision = " + getMulticlassModelPrecision(predictionAndLabels));
+        JavaPairRDD<Object, Object> predictionAndLabelsForTrainingSet = trainingSet.mapToPair(
+                new VerifyLogisticRegressionModel(logisticRegressionModel));
+
+        System.out.println("Logistic regression precision on test set = " + getMulticlassModelPrecision(predictionAndLabelsForTestSet));
+        System.out.println("Logistic regression precision on training set = " + getMulticlassModelPrecision(predictionAndLabelsForTrainingSet));
 
         return logisticRegressionModel;
     }

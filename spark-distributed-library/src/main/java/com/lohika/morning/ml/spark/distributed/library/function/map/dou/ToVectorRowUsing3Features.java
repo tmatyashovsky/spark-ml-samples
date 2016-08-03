@@ -5,7 +5,7 @@ import org.apache.spark.ml.linalg.Vectors;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 
-public class ToVectorRowUsing3Features  implements Function<Row, Row> {
+public class ToVectorRowUsing3Features implements Function<Row, Row> {
 
     @Override
     public Row call(Row inputRow) {

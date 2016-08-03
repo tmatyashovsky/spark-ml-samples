@@ -23,7 +23,7 @@ ext {
   logbackVersion = '1.1.5'
   jacksonVersion = '2.4.2'
 
-  apacheSparkVersion = '2.0.0-preview'
+  apacheSparkVersion = '2.0.0'
   apacheSparkScalaVersion = '2.11'
   databricksSparkCsvVersion = '1.4.0'
 

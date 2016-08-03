@@ -6,16 +6,28 @@ import org.apache.spark.mllib.linalg.Vectors;
 import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.sql.Row;
 
-/**
- * Created by tmatyashovsky on 7/28/16.
- */
 public class ConvertMLLabeledPointToMLlibLabeledPoint implements Function<Row, LabeledPoint> {
 
     @Override
     public LabeledPoint call(Row inputRow) throws Exception {
-        DenseVector mlDenseVector = (DenseVector) inputRow.getAs("features");
-        org.apache.spark.mllib.linalg.Vector mllibDenseVector = Vectors.dense(mlDenseVector.values());
+        double[] averages = ((DenseVector) inputRow.getAs("averages")).values();
+        double[] variances = ((DenseVector) inputRow.getAs("variances")).values();
+
+        double[] features = new double[averages.length + variances.length];
+        int i = 0;
+        for (Double d: averages) {
+            features[i++] = d;
+        }
+
+        for (Double d: variances) {
+            features[i++] = d;
+        }
+
+        org.apache.spark.mllib.linalg.Vector mllibDenseVector = Vectors.dense(features);
         return new LabeledPoint(inputRow.getAs("label"), mllibDenseVector);
+//        DenseVector mlDenseVector = (DenseVector) inputRow.getAs("features");
+//        org.apache.spark.mllib.linalg.Vector mllibDenseVector = Vectors.dense(mlDenseVector.values());
+//        return new LabeledPoint(inputRow.getAs("label"), mllibDenseVector);
     }
 
 }

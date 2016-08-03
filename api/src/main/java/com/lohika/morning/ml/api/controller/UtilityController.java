@@ -1,5 +1,6 @@
 package com.lohika.morning.ml.api.controller;
 
+import com.lohika.morning.ml.spark.driver.service.DeepLearningUtilityService;
 import com.lohika.morning.ml.spark.driver.service.DouUtilityService;
 import com.lohika.morning.ml.spark.driver.service.MLlibUtilityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,9 @@ public class UtilityController {
 
     @Autowired
     private DouUtilityService douService;
+
+    @Autowired
+    private DeepLearningUtilityService deepLearningUtilityService;
 
     @Value("${cat.dog.csv.file.path}")
     private String catDogCsvFilePath;
@@ -57,6 +61,12 @@ public class UtilityController {
         douService.convertToLabeledPointUsing2Features(douParquet2FilePath);
         douService.convertToLabeledPointUsing3Features(douParquet3FilePath);
         douService.convertToVectorUsing3Features(douParquetVectorFilePath);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/convert_mnist_dl", method = RequestMethod.GET)
+    ResponseEntity convertMnistDL() {
+        deepLearningUtilityService.saveMNISTDataset();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
