@@ -9,7 +9,6 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.expressions.Aggregator;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 
 public class DenseVectorValuesElementsAverageAggregator extends Aggregator<Row, DoubleArrayAVGHolder, Row> {
@@ -33,15 +32,27 @@ public class DenseVectorValuesElementsAverageAggregator extends Aggregator<Row, 
     public DoubleArrayAVGHolder reduce(DoubleArrayAVGHolder buffer, Row input) {
         // TODO: How should null-values be handled?
         if (input != null) {
-            double[] sums = buffer.getSums();
-            int[] counts = buffer.getCounts();
+            double[] averageSums = buffer.getAverageSums();
+            int count = buffer.getCounts();
 
             DenseVector vector = (DenseVector) input.getAs("features");
             double[] vectorValues = vector.values();
             for (int i = 0, valuesLength = vectorValues.length; i < valuesLength; i++) {
-                sums[i] = sums[i] + vectorValues[i];
-                counts[i] = counts[i] + 1;
+                averageSums[i] = averageSums[i] + vectorValues[i];
             }
+
+            buffer.setCounts(++count);
+
+//            WrappedArray<WrappedArray<Double>> rows = ((WrappedArray<WrappedArray<Double>>)input.getAs("cov")).thisCollection();
+//            double[][] covarianceSums = new double[vectorSize][vectorSize];
+//
+//            for (int i=0; i<vectorSize; i++) {
+//                for (int j=0; j<vectorSize; j++) {
+//                    covarianceSums[i][j] = rows.apply(i).apply(j);
+//                }
+//            }
+//
+//            buffer.setCovarianceSums(covarianceSums);
 
             if (includeLabel) {
                 buffer.setLabel(input.getAs("label"));
@@ -52,33 +63,52 @@ public class DenseVectorValuesElementsAverageAggregator extends Aggregator<Row, 
 
     @Override
     public DoubleArrayAVGHolder merge(DoubleArrayAVGHolder buffer1, DoubleArrayAVGHolder buffer2) {
-        int length = buffer1.getSums().length;
+        int length = buffer1.getAverageSums().length;
 
-        double[] buffer1Sums = buffer1.getSums();
-        double[] buffer2Sums = buffer2.getSums();
+        double[] buffer1Sums = buffer1.getAverageSums();
+        double[] buffer2Sums = buffer2.getAverageSums();
         double[] sums = new double[length];
         for (int i = 0, sumsLength = buffer1Sums.length; i < sumsLength; i++) {
             sums[i] = buffer1Sums[i] + buffer2Sums[i];
         }
 
-        int[] buffer1Counts = buffer1.getCounts();
-        int[] buffer2Counts = buffer2.getCounts();
-        int[] counts = new int[buffer1.getCounts().length];
-        for (int i = 0, sumsLength = buffer1Counts.length; i < sumsLength; i++) {
-            counts[i] = buffer1Counts[i] + buffer2Counts[i];
-        }
-        return new DoubleArrayAVGHolder(buffer1.getLabel() != null ? buffer1.getLabel() : buffer2.getLabel(), sums, counts);
+        int buffer1Counts = buffer1.getCounts();
+        int buffer2Counts = buffer2.getCounts();
+        int counts = buffer1Counts + buffer2Counts;
+
+//        double[][] buffer1CovarianceSums = buffer1.getCovarianceSums();
+//        double[][] buffer2CovarianceSums = buffer2.getCovarianceSums();
+//        double[][] covarianceSums = new double[length][length];
+//        for (int i = 0; i < vectorSize; i++) {
+//            for (int j = 0; j < vectorSize; j++) {
+//                covarianceSums[i][j] = buffer1CovarianceSums[i][j] + buffer2CovarianceSums[i][j];
+//            }
+//        }
+
+        return new DoubleArrayAVGHolder(buffer1.getLabel() != null ? buffer1.getLabel() : buffer2.getLabel(),
+                                        sums, counts, null);
     }
 
     @Override
     public Row finish(DoubleArrayAVGHolder buffer) {
-        double[] sums = buffer.getSums();
-        int[] counts = buffer.getCounts();
-        double[] result = new double[sums.length];
+        double[] sums = buffer.getAverageSums();
+        int counts = buffer.getCounts();
+        double[] averages = new double[sums.length];
         for (int i = 0, sumsLength = sums.length; i < sumsLength; i++) {
-            result[i] = sums[i] / counts[i];
+            averages[i] = sums[i] / counts;
         }
-        return RowFactory.create(new Object[]{buffer.getLabel(), new DenseVector(result)});
+
+//        double[][] covarianceSums = buffer.getCovarianceSums();
+//        double[] covariance = new double[vectorSize * vectorSize];
+//
+//        int z = 0;
+//        for (int i = 0; i < vectorSize; i++) {
+//            for (int j = 0; j < vectorSize; j++) {
+//                covariance[z++] = covarianceSums[i][j]/ (counts);
+//            }
+//        }
+
+        return RowFactory.create(new Object[]{buffer.getLabel(), new DenseVector(averages)});
     }
 
     @Override
@@ -94,7 +124,8 @@ public class DenseVectorValuesElementsAverageAggregator extends Aggregator<Row, 
         // ... but in java - https://issues.apache.org/jira/browse/SPARK-13128
         return RowEncoder.apply(DataTypes.createStructType(new StructField[]{
                 DataTypes.createStructField("label", DataTypes.DoubleType, true),
-                DataTypes.createStructField("averages", new VectorUDT(), false, Metadata.empty())
+                DataTypes.createStructField("averages", new VectorUDT(), false)
+//                DataTypes.createStructField("variances", new VectorUDT(), false)
         }));
     }
 }

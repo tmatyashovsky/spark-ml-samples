@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -51,8 +52,10 @@ public class TrainController {
     }
 
     @RequestMapping(value = "/train_lyrics", method = RequestMethod.GET)
-    ResponseEntity trainDarkLyrics() {
-        lyricsService.classifyLyrics();
+    ResponseEntity trainDarkLyrics(@RequestParam(defaultValue = "50") int vectorSize,
+                                   @RequestParam(defaultValue = "2") int sentencesInVerse,
+                                   @RequestParam(defaultValue = "false") boolean includeVariances) {
+        lyricsService.classifyLyrics(vectorSize, sentencesInVerse, includeVariances);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

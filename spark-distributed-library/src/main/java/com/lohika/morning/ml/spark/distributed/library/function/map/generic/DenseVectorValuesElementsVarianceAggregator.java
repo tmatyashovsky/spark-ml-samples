@@ -10,7 +10,6 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.expressions.Aggregator;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 
 public class DenseVectorValuesElementsVarianceAggregator extends Aggregator<Row, DoubleArrayVarianceHolder, Row> {
@@ -87,8 +86,8 @@ public class DenseVectorValuesElementsVarianceAggregator extends Aggregator<Row,
         // ... but in java - https://issues.apache.org/jira/browse/SPARK-13128
         return RowEncoder.apply(DataTypes.createStructType(new StructField[]{
                 DataTypes.createStructField("label", DataTypes.DoubleType, true),
-                DataTypes.createStructField("averages", new VectorUDT(), false, Metadata.empty()),
-                DataTypes.createStructField("variances", new VectorUDT(), false, Metadata.empty())
+                DataTypes.createStructField("averages", new VectorUDT(), false),
+                DataTypes.createStructField("variances", new VectorUDT(), false)
         }));
     }
 }

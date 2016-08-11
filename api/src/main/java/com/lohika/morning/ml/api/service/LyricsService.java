@@ -14,8 +14,8 @@ public class LyricsService {
     @Autowired
     private TextService textService;
 
-    public void classifyLyrics() {
-        textService.classifyDarkLyrics(lyricsTrainingSetDirectoryPath);
+    public void classifyLyrics(int vectorSize, int sentencesInVerse, boolean includeVariances) {
+        textService.classifyDarkLyrics(lyricsTrainingSetDirectoryPath, vectorSize, sentencesInVerse, includeVariances);
     }
 
 }

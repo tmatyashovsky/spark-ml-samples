@@ -28,36 +28,38 @@ public class AggregatorTest extends BaseTest {
     public void shouldCalculateCorrectAvgAndCovariance() {
         JavaRDD<Row> data = new JavaSparkContext(getSparkSession().sparkContext())
             .parallelize(Arrays.asList(
-                RowFactory.create(0D, 1D, Vectors.dense(1.0, 2.0, 3.0)),
-                RowFactory.create(0D, 1D, Vectors.dense(4.0, 5.0, 6.0)),
-                RowFactory.create(0D, 1D, Vectors.dense(4.0, 8.0, 12.0)))
+                RowFactory.create("And nothing else matters", 0D, 1D, "And", Vectors.dense(1.0, 2.0, 3.0)),
+                RowFactory.create("And nothing else matters", 0D, 1D, "nothing", Vectors.dense(1.0, 2.0, 3.0)),
+                RowFactory.create("And nothing else matters", 0D, 1D, "else", Vectors.dense(4.0, 5.0, 6.0)),
+                RowFactory.create("And nothing else matters", 0D, 1D, "matters", Vectors.dense(4.0, 8.0, 12.0)))
             );
 
-        StructType schema = new StructType(new StructField[]{
-            new StructField("label", DataTypes.DoubleType, false, Metadata.empty()),
-            new StructField("id", DataTypes.DoubleType, false, Metadata.empty()),
-            new StructField("features", new VectorUDT(), false, Metadata.empty())
+            StructType schema = new StructType(new StructField[]{
+                new StructField("value", DataTypes.StringType, false, Metadata.empty()),
+                new StructField("label", DataTypes.DoubleType, false, Metadata.empty()),
+                new StructField("id", DataTypes.DoubleType, false, Metadata.empty()),
+                new StructField("words", DataTypes.StringType, false, Metadata.empty()),
+                new StructField("features", new VectorUDT(), false, Metadata.empty())
         });
 
         Dataset<Row> dataset = getSparkSession().createDataFrame(data, schema);
 
-        textService.setVectorSize(3);
-        Dataset<Row> averagesDataset = textService.getAverages(dataset);
+        Dataset<Row> averagesDataset = textService.getFeatures(dataset, 3, true);
 
         List<Row> averagesList = averagesDataset.collectAsList();
         assertEquals(1, averagesList.size());
 
         double[] averages = ((DenseVector) averagesList.get(0).getAs("averages")).values();
-        assertArrayEquals(new double[]{3D, 5D, 7D}, averages, 0D);
+        assertArrayEquals(new double[]{2.25D, 3.75D, 6D}, averages, 0D);
 
         Dataset<Row> joined = dataset.join(averagesDataset, "id");
 
-        Dataset<Row> variancesDataset = textService.getVariances(joined);
+        Dataset<Row> variancesDataset = textService.getVariances(joined, 3);
         List<Row> variancesList = variancesDataset.collectAsList();
         assertEquals(1, variancesList.size());
 
         double[] variances = ((DenseVector) variancesList.get(0).getAs("variances")).values();
-        assertArrayEquals(new double[]{3D, 4.5D, 6D, 4.5D, 9D, 13.5D, 6D, 13.5D, 21D}, variances, 0D);
+        assertArrayEquals(new double[]{3D, 4.5D, 6D, 4.5D, 8.25D, 12D, 6D, 12D, 18D}, variances, 0D);
     }
 
 }

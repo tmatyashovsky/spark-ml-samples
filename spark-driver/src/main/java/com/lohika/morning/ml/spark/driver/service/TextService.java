@@ -5,14 +5,16 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.ml.feature.StopWordsRemover;
 import org.apache.spark.ml.feature.Tokenizer;
 import org.apache.spark.ml.feature.Word2Vec;
 import org.apache.spark.ml.feature.Word2VecModel;
-import org.apache.spark.mllib.classification.LogisticRegressionModel;
+import org.apache.spark.mllib.feature.Stemmer;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.Aggregator;
+import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
@@ -24,63 +26,147 @@ import scala.Tuple2;
 @Component
 public class TextService {
 
-    private int vectorSize = 100;
-
     @Autowired
     private SparkSession sparkSession;
 
     @Autowired
     private MLlibService mLlibService;
 
-    public void classifyDarkLyrics(final String inputDirectory) {
-        Tuple2<JavaRDD<LabeledPoint>, Word2VecModel> trainingSetAndWord2Vec = getTrainingSet(inputDirectory);
+    public void classifyDarkLyrics(final String inputDirectory, final int vectorSize, final int sentencesInVerse, final boolean includeVariances) {
+        JavaRDD<LabeledPoint> trainingSet = getTrainingSet(inputDirectory, vectorSize, sentencesInVerse, includeVariances);
 
-        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> datasets = mLlibService.getTrainingAndTestDatasets(trainingSetAndWord2Vec._1());
+        Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> datasets = mLlibService.getTrainingAndTestDatasets(trainingSet);
 
-        LogisticRegressionModel logisticRegressionModel = mLlibService.trainLogisticRegression(datasets._1(), datasets._2(), 2);
+        mLlibService.trainLogisticRegression(datasets._1(), datasets._2(), 2);
 
 //        System.out.print(logisticRegressionModel.predict(mlVectorToMLlibVector(getValidationSet())).collect());
     }
 
-    private Tuple2<JavaRDD<LabeledPoint>, Word2VecModel> getTrainingSet(String inputDirectory) {
+    private Dataset<Row> getPopMusic(String inputDirectory) {
+        Dataset<String> madonnaLyrics = getLyrics(inputDirectory, "madonna.txt");
+        Dataset<String> jenniferLopezLyrics = getLyrics(inputDirectory, "jennifer_lopez.txt");
+        Dataset<String> britneySpearsLyrics = getLyrics(inputDirectory, "britney_spears.txt");
+        Dataset<String> backstreetBoysLyrics = getLyrics(inputDirectory, "backstreet_boys.txt");
+        Dataset<String> christinaAguileraLyrics = getLyrics(inputDirectory, "christina_aguilera.txt");
+
+        Dataset<String> popLyrics = madonnaLyrics
+                                        .union(jenniferLopezLyrics)
+                                        .union(britneySpearsLyrics)
+                                        .union(backstreetBoysLyrics)
+                                        .union(christinaAguileraLyrics);
+
+        Dataset<Row> popMusic = popLyrics.withColumn("label", functions.lit(1D));
+        System.out.println("Pop music sentences = " + popMusic.count());
+
+        return popMusic;
+    }
+
+    private Dataset<Row> getMetalMusic(String inputDirectory) {
         Dataset<String> blackSabbathLyrics = getLyrics(inputDirectory, "black_sabbath.txt");
-        System.out.println("Black sabbath sentences = " + blackSabbathLyrics.count());
-
         Dataset<String> metallicaLyrics = getLyrics(inputDirectory, "metallica.txt");
-        System.out.println("Metallica sentences = " + metallicaLyrics.count());
+        Dataset<String> moonspellLyrics = getLyrics(inputDirectory, "moonspell.txt");
+        Dataset<String> ironMaidenLyrics = getLyrics(inputDirectory, "iron_maiden.txt");
 
-//        Dataset<String> beatlesLyrics = getLyrics(inputDirectory, "beatles.txt");
-//        System.out.println("Beatles sentences = " + beatlesLyrics.count());
+        Dataset<String> metalLyrics = blackSabbathLyrics
+                                                .union(metallicaLyrics)
+                                                .union(moonspellLyrics)
+                                                .union(ironMaidenLyrics);
 
-        Dataset<Row> blackSabbathSentences = blackSabbathLyrics.withColumn("label", functions.lit(0D));
-        Dataset<Row> metallicaSentences = metallicaLyrics.withColumn("label", functions.lit(1D));
-//        Dataset<Row> beatlesSentences = beatlesLyrics.withColumn("label", functions.lit(2D));
+        Dataset<Row> metalMusic = metalLyrics.withColumn("label", functions.lit(0D));
+        System.out.println("Metal music sentences = " + metalLyrics.count());
 
-        Dataset<Row> sentences = blackSabbathSentences.union(metallicaSentences);
+        return metalMusic;
+    }
 
-        Dataset<Row> separatedWords = getWord2VecDataset(sentences);
+    private JavaRDD<LabeledPoint> getTrainingSet(String inputDirectory, int vectorSize, int sentencesInVerse, boolean includeVariances) {
+        Dataset<Row> sentences = getPopMusic(inputDirectory).union(getMetalMusic(inputDirectory));
 
-        System.out.println("Words for Word2Vec = " + separatedWords.select("words").distinct().count());
+        // Remove all punctuation symbols.
+        sentences = sentences.withColumn("value", functions.regexp_replace(sentences.col("value"), "[^\\w\\s]", ""));
+
+        // Add unique id to each sentence of lyrics.
+        Dataset<Row> sentencesWithIds = sentences.withColumn("id", functions.monotonically_increasing_id());
+        sentencesWithIds = sentencesWithIds.withColumn("rowNumber", functions.row_number().over(Window.orderBy("id")));
+
+        // Split into words.
+        Tokenizer tokenizer = new Tokenizer().setInputCol("value").setOutputCol("words");
+        Dataset<Row> words = tokenizer.transform(sentencesWithIds);
+
+        // Remove stop words.
+        StopWordsRemover stopWordsRemover = new StopWordsRemover().setInputCol("words").setOutputCol("filteredWords");
+        Dataset<Row> filtered = stopWordsRemover.transform(words);
+
+        // Create as many rows as words. This is needed or Stemmer.
+        Column filteredArray = functions.explode(filtered.col("filteredWords"));
+        Dataset<Row> filteredWords = filtered.withColumn("filteredWord", filteredArray);
+
+        // Perform stemming.
+        Dataset<Row> stemmedWords = new Stemmer()
+                .setInputCol("filteredWord")
+                .setOutputCol("stemmedWord")
+                .setLanguage("English")
+                .transform(filteredWords);
+
+        // Unite stemmed words into a sentence again.
+        Dataset<Row> stemmedSentences = stemmedWords.groupBy("rowNumber", "value", "label").agg(functions.column("rowNumber"), functions.concat_ws(" ", functions.collect_list("stemmedWord")).as("stemmedSentence"));
+
+        stemmedSentences.cache();
+
+        // Wrap string into array. This is a requirement for Word2Vec input.
+        Dataset<Row> word2VecDataset = stemmedSentences.withColumn("sentence",  functions.split(stemmedSentences.col("stemmedSentence"), " "));
 
         // Create model.
         Word2Vec word2Vec = new Word2Vec()
-                .setInputCol("words")
+                .setInputCol("sentence")
                 .setOutputCol("features")
                 .setVectorSize(vectorSize)
+                .setMaxSentenceLength(10)
                 .setMinCount(0);
 
         // Fit model.
-        Word2VecModel word2VecModel = word2Vec.fit(separatedWords);
+        Word2VecModel word2VecModel = word2Vec.fit(word2VecDataset);
 
-        // Train words and get full features.
-        Dataset<Row> fullFeatures = getFullFeatures(separatedWords, word2VecModel);
+        Column verseSplitExpression = functions
+                .when(
+                        functions
+                                .column("rowNumber")
+                                .mod(sentencesInVerse)
+                                .equalTo(1),
+                        1
+                )
+                .otherwise(0);
 
-        return new Tuple2<>(mlLabeledPointToMLlibLabeledPoint(fullFeatures), word2VecModel);
+        Dataset<Row> sententencesPreparedForSplit = stemmedSentences.withColumn("verseStart", verseSplitExpression);
+
+        Dataset<Row> verses = sententencesPreparedForSplit
+                .withColumn("verseId",
+                        functions
+                                .sum("verseStart")
+                                .over(
+                                        Window
+                                                .orderBy("rowNumber")
+                                                .rowsBetween(Long.MIN_VALUE, 0)
+                                )
+                )
+                .select("rowNumber", "verseId", "label", "stemmedSentence");
+
+        verses = verses.groupBy("verseId").agg(
+                functions.first("rowNumber").as("rowIdForVerse"),
+                functions.first("label").as("label"),
+                functions.split(functions.concat_ws(" ", functions.collect_list(functions.column("stemmedSentence"))), " ").as("verses")
+        );
+
+        word2VecModel.setInputCol("verses");
+        // Train words and get words as features features.
+        Dataset<Row> versesAsFeatures = word2VecModel.transform(verses);
+
+        return mlLabeledPointToMLlibLabeledPoint(versesAsFeatures, includeVariances);
     }
 
     private Dataset<Row> getWord2VecDataset(Dataset<Row> sentences) {
         // Add unique id to each sentence of lyrics.
         Dataset<Row> sentencesWithIds = sentences.withColumn("id", functions.monotonically_increasing_id());
+        sentencesWithIds = sentences.withColumn("sentence", functions.split(sentencesWithIds.col("value"), " "));
 
         // Split into words.
         Tokenizer tokenizer = new Tokenizer().setInputCol("value").setOutputCol("words");
@@ -94,7 +180,7 @@ public class TextService {
         return separatedWords;
     }
 
-    private Dataset<Row> getValidationSet(Word2VecModel word2VecModel) {
+    private Dataset<Row> getValidationSet(Word2VecModel word2VecModel, int vectorSize, boolean includeVariances) {
         List<Row> unknownLyrics = Arrays.asList(
                 RowFactory.create("The day that never comes"),
                 RowFactory.create("Is this the end of the beginning"),
@@ -107,8 +193,9 @@ public class TextService {
 
         Dataset<Row> unknownLyricsDataset = sparkSession.createDataFrame(unknownLyrics, schema);
         Dataset<Row> separatedWords = getWord2VecDataset(unknownLyricsDataset);
+        Dataset<Row> wordsAsFeatures = word2VecModel.transform(separatedWords);
 
-        return getFullFeatures(separatedWords, word2VecModel);
+        return getFeatures(wordsAsFeatures, vectorSize, includeVariances);
     }
 
     private Dataset<String> getLyrics(String inputDirectory, String fileName) {
@@ -119,32 +206,42 @@ public class TextService {
         return lyrics;
     }
 
-    private Dataset<Row> getFullFeatures(Dataset<Row> separatedWords, Word2VecModel word2VecModel) {
-        Dataset<Row> wordsAsFeatures = word2VecModel.transform(separatedWords);
+    public Dataset<Row> getFeatures(Dataset<Row> wordsAsFeatures, int vectorSize, boolean includeVariances) {
+//        wordsAsFeatures = wordsAsFeatures.map(new AverageMapFunction(),
+//                            RowEncoder.apply(
+//                                    wordsAsFeatures.schema()
+//                                            .add(
+//                                                DataTypes.createStructField("averagePerWord", DataTypes.DoubleType, false))
+//                                            .add(
+//                                                DataTypes.createStructField("delta", new VectorUDT(), false))
+//                                            .add(
+//                                                DataTypes.createStructField("cov", DataTypes.createArrayType(DataTypes.createArrayType(DataTypes.DoubleType)), false))));
+        Dataset<Row> averagePerSentence = getAverages(wordsAsFeatures, vectorSize);
 
-        Dataset<Row> averagePerSentence = getAverages(wordsAsFeatures);
+        if (includeVariances) {
+            Dataset<Row> joined = wordsAsFeatures.join(averagePerSentence, "id");
+            return getVariances(joined, vectorSize);
+        }
 
-        Dataset<Row> joined = wordsAsFeatures.join(averagePerSentence, "id");
-
-        return getVariances(joined);
+        return averagePerSentence;
     }
 
-    public Dataset<Row> getAverages(Dataset<Row> dataset) {
+    public Dataset<Row> getAverages(Dataset<Row> dataset, int vectorSize) {
         Aggregator<Row, DoubleArrayAVGHolder, Row> averageAggregator = new DenseVectorValuesElementsAverageAggregator(vectorSize, true);
 
         return dataset.groupBy("id").agg(averageAggregator.toColumn().as("averagePerSentence"))
                 .select("id", "averagePerSentence.label", "averagePerSentence.averages");
     }
 
-    public Dataset<Row> getVariances(Dataset<Row> dataset) {
+    public Dataset<Row> getVariances(Dataset<Row> dataset, int vectorSize) {
         Aggregator<Row, DoubleArrayVarianceHolder, Row> varianceAggregator = new DenseVectorValuesElementsVarianceAggregator(vectorSize);
 
         return dataset.groupBy("id").agg(varianceAggregator.toColumn().as("fullFeatures"))
                 .select("id", "fullFeatures.label", "fullFeatures.averages", "fullFeatures.variances");
     }
 
-    public JavaRDD<LabeledPoint> mlLabeledPointToMLlibLabeledPoint(Dataset<Row> mlLabeledPointDataset) {
-        return mlLabeledPointDataset.javaRDD().map(new ConvertMLLabeledPointToMLlibLabeledPoint());
+    public JavaRDD<LabeledPoint> mlLabeledPointToMLlibLabeledPoint(Dataset<Row> mlLabeledPointDataset, boolean includeVariances) {
+        return mlLabeledPointDataset.javaRDD().map(new ConvertMLLabeledPointToMLlibLabeledPoint(includeVariances));
     }
 
     public JavaRDD<Vector> mlVectorToMLlibVector(Dataset<Row> mlVector) {
@@ -178,8 +275,4 @@ public class TextService {
 //
 //    System.out.println();
 
-
-    public void setVectorSize(int vectorSize) {
-        this.vectorSize = vectorSize;
-    }
 }

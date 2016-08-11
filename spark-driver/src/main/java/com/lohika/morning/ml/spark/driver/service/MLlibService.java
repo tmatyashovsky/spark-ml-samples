@@ -80,6 +80,8 @@ public class MLlibService {
         trainingSet.count();
 
         JavaRDD<LabeledPoint> testSet = fullSet.subtract(trainingSet);
+        testSet.cache();
+        testSet.count();
 
         return new Tuple2<>(trainingSet, testSet);
     }
@@ -117,7 +119,7 @@ public class MLlibService {
         return logisticRegressionModel;
     }
 
-    private void trainNaiveBayes(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet) {
+    public void trainNaiveBayes(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet) {
         // Run training algorithm to build the model.
         final NaiveBayesModel naiveBayesModel = NaiveBayes.train(trainingSet.rdd(), 1.0);
 
@@ -127,7 +129,7 @@ public class MLlibService {
         System.out.println("Naive Bayes precision = " + getMulticlassModelPrecision(predictionAndLabels));
     }
 
-    private void trainSVM(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numIterations) {
+    public void trainSVM(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numIterations) {
         // Run training algorithm to build the model.
         final SVMModel svmModel = SVMWithSGD.train(trainingSet.rdd(), numIterations);
 
