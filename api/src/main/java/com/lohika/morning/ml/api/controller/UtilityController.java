@@ -1,7 +1,7 @@
 package com.lohika.morning.ml.api.controller;
 
 import com.lohika.morning.ml.spark.driver.service.DeepLearningUtilityService;
-import com.lohika.morning.ml.spark.driver.service.DouUtilityService;
+import com.lohika.morning.ml.spark.driver.service.dou.DouUtilityService;
 import com.lohika.morning.ml.spark.driver.service.MLlibUtilityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

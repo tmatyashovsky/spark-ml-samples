@@ -1,4 +1,4 @@
-package com.lohika.morning.ml.spark.driver.service;
+package com.lohika.morning.ml.spark.driver.service.dou;
 
 import com.lohika.morning.ml.spark.distributed.library.function.map.dou.ToLabeledPointUsing2Features;
 import com.lohika.morning.ml.spark.distributed.library.function.map.dou.ToLabeledPointUsing3Features;

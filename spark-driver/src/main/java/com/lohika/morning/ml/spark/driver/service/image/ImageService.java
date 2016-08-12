@@ -1,4 +1,4 @@
-package com.lohika.morning.ml.spark.driver.service;
+package com.lohika.morning.ml.spark.driver.service.image;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;

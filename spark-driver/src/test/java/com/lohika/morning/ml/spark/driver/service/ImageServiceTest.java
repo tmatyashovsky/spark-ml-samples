@@ -1,5 +1,6 @@
 package com.lohika.morning.ml.spark.driver.service;
 
+import com.lohika.morning.ml.spark.driver.service.image.ImageService;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;

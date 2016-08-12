@@ -53,9 +53,8 @@ public class TrainController {
 
     @RequestMapping(value = "/train_lyrics", method = RequestMethod.GET)
     ResponseEntity trainDarkLyrics(@RequestParam(defaultValue = "50") int vectorSize,
-                                   @RequestParam(defaultValue = "2") int sentencesInVerse,
-                                   @RequestParam(defaultValue = "false") boolean includeVariances) {
-        lyricsService.classifyLyrics(vectorSize, sentencesInVerse, includeVariances);
+                                   @RequestParam(defaultValue = "2") int sentencesInVerse) {
+        lyricsService.classifyLyrics(vectorSize, sentencesInVerse);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
