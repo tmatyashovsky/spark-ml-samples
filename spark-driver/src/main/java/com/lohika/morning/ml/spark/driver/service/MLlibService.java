@@ -3,6 +3,9 @@ package com.lohika.morning.ml.spark.driver.service;
 import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifyLogisticRegressionModel;
 import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifyNaiveBayesModel;
 import com.lohika.morning.ml.spark.distributed.library.function.verify.VerifySVMModel;
+import com.lohika.morning.ml.spark.driver.service.mnist.MnistUtilityService;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.classification.*;
@@ -23,13 +26,24 @@ public class MLlibService {
     private SparkSession sparkSession;
 
     @Autowired
-    private MLlibUtilityService utilityService;
+    private MnistUtilityService mnistUtilityService;
 
-    public void trainLogisticRegression(String trainingSetParquetFilePath, String testSetParquetFilePath, int numClasses) {
+    public Map<String, Object> trainLogisticRegression(String trainingSetParquetFilePath,
+                                                       String testSetParquetFilePath,
+                                                       int numClasses,
+                                                       String modelOutputPath) {
         Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> trainingAndTestDataSet = getTrainingAndTestDatasets(
             trainingSetParquetFilePath, testSetParquetFilePath);
 
-        trainLogisticRegression(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numClasses);
+        LogisticRegressionModel logisticRegressionModel = trainLogisticRegression(trainingAndTestDataSet._1(),
+                                                                                  trainingAndTestDataSet._2(),
+                                                                                  numClasses);
+
+        saveModel(logisticRegressionModel, modelOutputPath);
+
+        return validateLogisticRegression(trainingAndTestDataSet._1(),
+                                          trainingAndTestDataSet._2(),
+                                          logisticRegressionModel);
     }
 
     public void trainLogisticRegression(String fullSetParquetFilePath, int numClasses) {
@@ -68,7 +82,7 @@ public class MLlibService {
     private Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(final String fullSetParquetFilePath) {
         Dataset<Row> fullSetDataset = sparkSession.read().parquet(fullSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> fullSet = utilityService.rowToLabeledPoint(fullSetDataset);
+        JavaRDD<LabeledPoint> fullSet = mnistUtilityService.rowToLabeledPoint(fullSetDataset);
 
         return getTrainingAndTestDatasets(fullSet);
     }
@@ -88,35 +102,47 @@ public class MLlibService {
 
     private Tuple2<JavaRDD<LabeledPoint>, JavaRDD<LabeledPoint>> getTrainingAndTestDatasets(
             final String trainingSetParquetFilePath, final String testSetParquetFilePath) {
-        Dataset<Row> trainingSetDataFrame =sparkSession.read().parquet(trainingSetParquetFilePath);
-        trainingSetDataFrame.cache();
-        trainingSetDataFrame.count();
+        Dataset<Row> trainingSetDataset =sparkSession.read().parquet(trainingSetParquetFilePath);
+        trainingSetDataset.cache();
+        trainingSetDataset.count();
 
-        JavaRDD<LabeledPoint> trainingSet = utilityService.rowToLabeledPoint(trainingSetDataFrame);
+        JavaRDD<LabeledPoint> trainingSetRDD = mnistUtilityService.rowToLabeledPoint(trainingSetDataset);
 
-        Dataset<Row> testSetDataFrame = sparkSession.read().parquet(testSetParquetFilePath);
+        Dataset<Row> testSetDataset = sparkSession.read().parquet(testSetParquetFilePath);
 
-        JavaRDD<LabeledPoint> testSet = utilityService.rowToLabeledPoint(testSetDataFrame);
+        JavaRDD<LabeledPoint> testSetRDD = mnistUtilityService.rowToLabeledPoint(testSetDataset);
 
-        return new Tuple2<>(trainingSet, testSet);
+        return new Tuple2<>(trainingSetRDD, testSetRDD);
     }
 
     public LogisticRegressionModel trainLogisticRegression(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, int numClasses) {
         // Run training algorithm to build the model.
-        final LogisticRegressionModel logisticRegressionModel =  new LogisticRegressionWithLBFGS()
+        return new LogisticRegressionWithLBFGS()
                 .setNumClasses(numClasses)
                 .run(trainingSet.rdd());
+    }
 
+    private Map<String, Object> validateLogisticRegression(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet, LogisticRegressionModel logisticRegressionModel) {
         JavaPairRDD<Object, Object> predictionAndLabelsForTestSet = testSet.mapToPair(
             new VerifyLogisticRegressionModel(logisticRegressionModel));
 
         JavaPairRDD<Object, Object> predictionAndLabelsForTrainingSet = trainingSet.mapToPair(
-                new VerifyLogisticRegressionModel(logisticRegressionModel));
+            new VerifyLogisticRegressionModel(logisticRegressionModel));
 
-        System.out.println("Logistic regression precision on test set = " + getMulticlassModelPrecision(predictionAndLabelsForTestSet));
-        System.out.println("Logistic regression precision on training set = " + getMulticlassModelPrecision(predictionAndLabelsForTrainingSet));
+        Map<String, Object> modelStatistics = new HashMap<>();
+        modelStatistics.put("Logistic regression precision on training set", getMulticlassModelPrecision(predictionAndLabelsForTrainingSet));
+        modelStatistics.put("Logistic regression precision on test set", getMulticlassModelPrecision(predictionAndLabelsForTestSet));
 
-        return logisticRegressionModel;
+        printModelStatistics(modelStatistics);
+
+        return modelStatistics;
+    }
+
+    private void printModelStatistics(Map<String, Object> modelStatistics) {
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Model statistics:");
+        System.out.println(modelStatistics);
+        System.out.println("------------------------------------------------\n");
     }
 
     public void trainNaiveBayes(JavaRDD<LabeledPoint> trainingSet, JavaRDD<LabeledPoint> testSet) {
@@ -151,6 +177,22 @@ public class MLlibService {
         return metrics.areaUnderROC();
     }
 
+    public void saveModel(LogisticRegressionModel model, String modelOutputDirectory) {
+        model.save(sparkSession.sparkContext(), modelOutputDirectory);
+
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Saved logistic regression model to " + modelOutputDirectory);
+        System.out.println("------------------------------------------------\n");
+    }
+
+    public LogisticRegressionModel loadLogisticRegression(String modelDirectoryPath) {
+        LogisticRegressionModel model = LogisticRegressionModel.load(sparkSession.sparkContext(), modelDirectoryPath);
+
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Loaded logistic regression model from " + modelDirectoryPath);
+        System.out.println("------------------------------------------------\n");
+        return model;
+    }
 }
 
 

@@ -15,7 +15,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-public class Verser extends Transformer implements MLWritable, MLReadable<Verser> {
+public class Verser extends Transformer implements MLWritable {
 
     private String uid;
 
@@ -100,13 +100,8 @@ public class Verser extends Transformer implements MLWritable, MLReadable<Verser
         write().save(path);
     }
 
-    @Override
-    public MLReader<Verser> read() {
+    public static MLReader<Verser> read() {
         return new DefaultParamsReader<>();
     }
 
-    @Override
-    public Verser load(String path) {
-        return read().load(path);
-    }
 }

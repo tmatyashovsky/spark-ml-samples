@@ -1,6 +1,6 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
-import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.StemFunction;
+import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.StemmingFunction;
 import java.io.IOException;
 import java.util.UUID;
 import org.apache.spark.ml.Transformer;
@@ -12,7 +12,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-public class Stemmer extends Transformer implements MLWritable, MLReadable<Stemmer> {
+public class Stemmer extends Transformer implements MLWritable {
 
     private String uid;
 
@@ -31,7 +31,7 @@ public class Stemmer extends Transformer implements MLWritable, MLReadable<Stemm
 
     @Override
     public Dataset<Row> transform(Dataset dataset) {
-        return dataset.map(new StemFunction(), RowEncoder.apply(this.transformSchema(dataset.schema())));
+        return dataset.map(new StemmingFunction(), RowEncoder.apply(this.transformSchema(dataset.schema())));
     }
 
     @Override
@@ -54,13 +54,8 @@ public class Stemmer extends Transformer implements MLWritable, MLReadable<Stemm
         write().save(path);
     }
 
-    @Override
-    public MLReader<Stemmer> read() {
+    public static MLReader<Stemmer> read() {
         return new DefaultParamsReader<>();
     }
 
-    @Override
-    public Stemmer load(String path) {
-        return read().load(path);
-    }
 }

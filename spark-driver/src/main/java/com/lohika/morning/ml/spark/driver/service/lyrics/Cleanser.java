@@ -11,7 +11,7 @@ import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-public class Cleanser extends Transformer implements MLWritable, MLReadable {
+public class Cleanser extends Transformer implements MLWritable {
 
     private String inputCol = "value";
     private String outputCol = "clean";
@@ -58,14 +58,8 @@ public class Cleanser extends Transformer implements MLWritable, MLReadable {
         write().save(path);
     }
 
-    @Override
-    public MLReader read() {
+    public static MLReader<Cleanser> read() {
         return new DefaultParamsReader<>();
-    }
-
-    @Override
-    public Cleanser load(String path) {
-        return (Cleanser) read().load(path);
     }
 
 }

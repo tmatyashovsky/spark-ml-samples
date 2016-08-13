@@ -24,4 +24,5 @@ dependencies {
 
     testCompile("org.springframework:spring-test:$springFrameworkVersion")
     testCompile("junit:junit:$junitVersion")
+    compile("junit:junit:$junitVersion")
 }

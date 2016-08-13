@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-public class Numerator extends Transformer implements MLWritable, MLReadable<Numerator> {
+public class Numerator extends Transformer implements MLWritable {
 
     private String id = "id";
     private String rowNumber = "rowNumber";
@@ -62,14 +62,8 @@ public class Numerator extends Transformer implements MLWritable, MLReadable<Num
         write().save(path);
     }
 
-    @Override
-    public MLReader<Numerator> read() {
+    public static MLReader<Numerator> read() {
         return new DefaultParamsReader<>();
-    }
-
-    @Override
-    public Numerator load(String path) {
-        return read().load(path);
     }
 
 }

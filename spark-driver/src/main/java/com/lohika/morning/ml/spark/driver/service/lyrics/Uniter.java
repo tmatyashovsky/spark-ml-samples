@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-public class Uniter extends Transformer implements MLWritable, MLReadable<Uniter> {
+public class Uniter extends Transformer implements MLWritable {
 
     private String uid;
 
@@ -66,13 +66,8 @@ public class Uniter extends Transformer implements MLWritable, MLReadable<Uniter
         write().save(path);
     }
 
-    @Override
-    public MLReader<Uniter> read() {
+    public static MLReader<Uniter> read() {
         return new DefaultParamsReader<>();
     }
 
-    @Override
-    public Uniter load(String path) {
-        return read().load(path);
-    }
 }

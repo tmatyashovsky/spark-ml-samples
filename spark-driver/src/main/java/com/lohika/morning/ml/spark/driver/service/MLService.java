@@ -1,16 +1,14 @@
 package com.lohika.morning.ml.spark.driver.service;
 
+import java.io.IOException;
+import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.clustering.KMeans;
 import org.apache.spark.ml.clustering.KMeansModel;
-import org.apache.spark.ml.evaluation.RegressionEvaluator;
-import org.apache.spark.ml.linalg.Vector;
-import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.regression.LinearRegression;
 import org.apache.spark.ml.regression.LinearRegressionModel;
 import org.apache.spark.ml.regression.LinearRegressionTrainingSummary;
-import org.apache.spark.ml.tuning.CrossValidator;
 import org.apache.spark.ml.tuning.CrossValidatorModel;
-import org.apache.spark.ml.tuning.ParamGridBuilder;
+import org.apache.spark.ml.util.MLWritable;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -30,23 +28,13 @@ public class MLService {
         trainLinearRegression(trainingAndTestDataSet._1(), trainingAndTestDataSet._2(), numIterations);
     }
 
-    public void trainLinearRegressionUsingCrossValidator(String fullSetParquetFilePath, int numIterations) {
-        trainLinearRegressionUsingCrossValidator(getTrainingDataset(fullSetParquetFilePath), numIterations);
-    }
-
-    public void trainKMeans(String fullSetParquetFilePath) {
+    public KMeansModel trainKMeans(String fullSetParquetFilePath, Integer clusters) {
         Dataset<Row> dataset = getTrainingDataset(fullSetParquetFilePath);
 
-        // Trains a k-means model
-        KMeans kmeans = new KMeans().setK(3);
-        KMeansModel kMeansModel = kmeans.fit(dataset);
+        KMeans kmeans = new KMeans().setK(clusters);
 
-        // Shows the result.
-        Vector[] centers = kMeansModel.clusterCenters();
-        System.out.println("Cluster Centers: ");
-        for (Vector center: centers) {
-            System.out.println(center);
-        }
+        // Trains a k-means model.
+        return kmeans.fit(dataset);
     }
 
     private Tuple2<Dataset<Row>, Dataset<Row>> getTrainingAndTestDatasets(final String fullSetParquetFilePath) {
@@ -92,31 +80,36 @@ public class MLService {
         System.out.println("(" + predictedRow.get(0) + ", " + predictedRow.get(1) + ", prediction=" + predictedRow.get(2));
     }
 
-    private void trainLinearRegressionUsingCrossValidator(Dataset<Row> trainingSet, int numIterations) {
-        LinearRegression linearRegression = new LinearRegression();
+    public <T extends MLWritable> void saveModel(T model, String modelOutputDirectory) {
+        try {
+            model.write().overwrite().save(modelOutputDirectory);
 
-        ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(linearRegression.regParam(), new double[] {0.3, 0.1})
-                .addGrid(linearRegression.fitIntercept())
-                .addGrid(linearRegression.elasticNetParam(), new double[] {0.0, 0.5, 1.0})
-                .addGrid(linearRegression.maxIter(), new int[] {numIterations})
-                .build();
+            System.out.println("\n------------------------------------------------");
+            System.out.println("Saved model to " + modelOutputDirectory);
+            System.out.println("------------------------------------------------\n");
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Exception occurred while saving the model to disk. Details: %s",
+                    e.getMessage()));
+        }
+    }
 
-        // CrossValidator will try all combinations of values and determine best model using the evaluator.
-        CrossValidator crossValidator = new CrossValidator()
-                .setEstimator(linearRegression)
-                .setEvaluator(new RegressionEvaluator())
-                .setEstimatorParamMaps(paramGrid)
-                .setNumFolds(3);
+    public CrossValidatorModel loadCrossValidationModel(String modelDirectory) {
+        CrossValidatorModel model = CrossValidatorModel.load(modelDirectory);
 
-        // Run cross-validation, and choose the best set of parameters.
-        CrossValidatorModel crossValidatorModel = crossValidator.fit(trainingSet);
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Loaded cross validation model from " + modelDirectory);
+        System.out.println("------------------------------------------------\n");
+        return model;
+    }
 
-        // Print the coefficients for the best linear regression.
-        System.out.println("Coefficients: " + ((LinearRegressionModel)crossValidatorModel.bestModel()).coefficients());
+    public PipelineModel loadPipelineModel(String modelDirectory) {
+        PipelineModel model = PipelineModel.load(modelDirectory);
+
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Loaded pipeline model from " + modelDirectory);
+        System.out.println("------------------------------------------------\n");
+
+        return model;
     }
 
 }
-
-
-

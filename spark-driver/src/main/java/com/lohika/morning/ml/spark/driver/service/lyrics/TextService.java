@@ -1,10 +1,8 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
-import java.io.IOException;
+import com.lohika.morning.ml.spark.driver.service.MLService;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -21,7 +19,6 @@ import org.apache.spark.ml.tuning.*;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +30,9 @@ public class TextService {
     @Autowired
     private SparkSession sparkSession;
 
+    @Autowired
+    private MLService mlService;
+
     private Dataset<Row> getPopMusic(String inputDirectory) {
         Dataset<String> madonnaLyrics = getLyrics(inputDirectory, "madonna.txt");
         Dataset<String> jenniferLopezLyrics = getLyrics(inputDirectory, "jennifer_lopez.txt");
@@ -42,6 +42,10 @@ public class TextService {
         Dataset<String> modernTalkingLyrics = getLyrics(inputDirectory, "modern_talking.txt");
         Dataset<String> abbaLyrics = getLyrics(inputDirectory, "abba.txt");
         Dataset<String> aceOfBaseLyrics = getLyrics(inputDirectory, "ace_of_base.txt");
+        Dataset<String> eTypeLyrics = getLyrics(inputDirectory, "e-type.txt");
+        Dataset<String> michaelJacksonLyrics = getLyrics(inputDirectory, "michael_jackson.txt");
+        Dataset<String> mariahCareyLyrics = getLyrics(inputDirectory, "mariah_carey.txt");
+        Dataset<String> spiceGirlsLyrics = getLyrics(inputDirectory, "spice_girls.txt");
 
         Dataset<String> popLyrics = madonnaLyrics
                                         .union(jenniferLopezLyrics)
@@ -50,7 +54,11 @@ public class TextService {
                                         .union(christinaAguileraLyrics)
                                         .union(modernTalkingLyrics)
                                         .union(abbaLyrics)
-                                        .union(aceOfBaseLyrics);
+                                        .union(aceOfBaseLyrics)
+                                        .union(mariahCareyLyrics)
+                                        .union(spiceGirlsLyrics)
+                                        .union(eTypeLyrics)
+                                        .union(michaelJacksonLyrics);
 
         Dataset<Row> popMusic = popLyrics.withColumn("label", functions.lit(1D));
         System.out.println("Pop music sentences = " + popMusic.count());
@@ -67,6 +75,11 @@ public class TextService {
         Dataset<String> sentencedLyrics = getLyrics(inputDirectory, "sentenced.txt");
         Dataset<String> nightwishLyrics = getLyrics(inputDirectory, "nightwish.txt");
         Dataset<String> sepulturaLyrics = getLyrics(inputDirectory, "sepultura.txt");
+        Dataset<String> marilynMansonLyrics = getLyrics(inputDirectory, "marilyn_manson.txt");
+        Dataset<String> megadethLyrics = getLyrics(inputDirectory, "megadeth.txt");
+        Dataset<String> darkTranquillityLyrics = getLyrics(inputDirectory, "dark_tranquillity.txt");
+        Dataset<String> helloweenLyrics = getLyrics(inputDirectory, "helloween.txt");
+        Dataset<String> ozzyOzbourneLyrics = getLyrics(inputDirectory, "ozzy_ozbourne.txt");
 
         Dataset<String> metalLyrics = blackSabbathLyrics
                                                 .union(metallicaLyrics)
@@ -75,7 +88,12 @@ public class TextService {
                                                 .union(inFlamesLyrics)
                                                 .union(sentencedLyrics)
                                                 .union(nightwishLyrics)
-                                                .union(sepulturaLyrics);
+                                                .union(sepulturaLyrics)
+                                                .union(marilynMansonLyrics)
+                                                .union(megadethLyrics)
+                                                .union(darkTranquillityLyrics)
+                                                .union(helloweenLyrics)
+                                                .union(ozzyOzbourneLyrics);
 
         Dataset<Row> metalMusic = metalLyrics.withColumn("label", functions.lit(0D));
         System.out.println("Metal music sentences = " + metalLyrics.count());
@@ -83,8 +101,8 @@ public class TextService {
         return metalMusic;
     }
 
-    public void classifyLyricsWithPipeline(final String inputDirectory) {
-        Dataset<Row> sentences = getPopMusic(inputDirectory).union(getMetalMusic(inputDirectory));
+    public Map<String, Object> classifyLyricsWithPipeline(final String lyricsInputDirectory, final String modelOutputDirectory) {
+        Dataset<Row> sentences = getPopMusic(lyricsInputDirectory).union(getMetalMusic(lyricsInputDirectory));
 
         // Remove all punctuation symbols.
         Cleanser cleanser = new Cleanser();
@@ -127,61 +145,50 @@ public class TextService {
 
         // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(verser.sentencesInVerse(), new int[]{2, 4})
-                .addGrid(word2Vec.vectorSize(), new int[] {10})
-                .addGrid(logisticRegression.regParam(), new double[] {1D})
-                .addGrid(logisticRegression.maxIter(), new int[] {10})
+                .addGrid(verser.sentencesInVerse(), new int[]{2, 4, 8, 16, 32})
+                .addGrid(word2Vec.vectorSize(), new int[] {50, 100, 150, 200, 250, 300})
+                .addGrid(logisticRegression.regParam(), new double[] {0.05D})
+                .addGrid(logisticRegression.maxIter(), new int[] {200})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()
                 .setEstimator(pipeline)
                 .setEvaluator(new BinaryClassificationEvaluator())
-                .setEstimatorParamMaps(paramGrid).setNumFolds(3);
+                .setEstimatorParamMaps(paramGrid)
+                .setNumFolds(10);
 
         // Run cross-validation, and choose the best set of parameters.
         CrossValidatorModel model = crossValidator.fit(sentences);
 
-        Arrays.sort(model.avgMetrics());
-        System.out.println("Best avg metrics = " + model.avgMetrics()[model.avgMetrics().length - 1]);
+        mlService.saveModel(model, modelOutputDirectory);
 
-        PipelineModel bestModel = (PipelineModel) model.bestModel();
-
-        Transformer[] stages = bestModel.stages();
-        System.out.println("Best sentences in verse = " + ((Verser) stages[7]).getSentencesInVerse());
-        System.out.println("Best vector size = "  + ((Word2VecModel) stages[8]).getVectorSize());
-        System.out.println("Word2Vec vocabulary = "  + ((Word2VecModel) stages[8]).getVectors().count());
-        System.out.println("Best reg parameter = " + ((LogisticRegressionModel) stages[9]).getRegParam());
-        System.out.println("Best max iterations = " + ((LogisticRegressionModel) stages[9]).getMaxIter());
-
-        try {
-            model.write().overwrite().save("/Users/tmatyashovsky/Workspace/lyrics/models");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        predict("123");
+        return getModelStatistics(model);
     }
 
-    public double predict(String unknownLyrics) {
+    public double predict(final String unknownLyrics, final String modelDirectory) {
         List<Row> unknownLyricsList = Collections.singletonList(
             RowFactory.create(unknownLyrics, -1.0D)
         );
 
         StructType schema = new StructType(new StructField[]{
-            new StructField("value", DataTypes.StringType, true, Metadata.empty()),
-            new StructField("label", DataTypes.DoubleType, true, Metadata.empty())
+            DataTypes.createStructField("value", DataTypes.StringType, false),
+            DataTypes.createStructField("label", DataTypes.DoubleType, false)
         });
 
         Dataset<Row> unknownLyricsDataset = sparkSession.createDataFrame(unknownLyricsList, schema);
 
-        CrossValidatorModel model = CrossValidatorModel.load("/Users/tmatyashovsky/Workspace/lyrics/models");
+        CrossValidatorModel model = mlService.loadCrossValidationModel(modelDirectory);
+        getModelStatistics(model);
+
         PipelineModel bestModel = (PipelineModel) model.bestModel();
 
         Dataset<Row> predictions = bestModel.transform(unknownLyricsDataset);
-        Row prediction = predictions.collectAsList().get(0);
+        Row prediction = predictions.first();
 
-        System.out.println("Probability: " + prediction.getAs("probability") + " " +
-                           "Prediction: " + Double.toString(prediction.getAs("prediction")));
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Probability: " + prediction.getAs("probability"));
+        System.out.println("Prediction: " + Double.toString(prediction.getAs("prediction")));
+        System.out.println("------------------------------------------------\n");
 
         return prediction.getAs("prediction");
     }
@@ -194,7 +201,7 @@ public class TextService {
         return lyrics;
     }
 
-    public void classifyLyricsWithoutPipeline(final String inputDirectory) {
+    public TrainValidationSplitModel classifyLyricsWithoutPipeline(final String inputDirectory) {
         Dataset<Row> sentences = getPopMusic(inputDirectory).union(getMetalMusic(inputDirectory));
 
         // Remove all punctuation symbols.
@@ -298,10 +305,39 @@ public class TextService {
         TrainValidationSplitModel model = trainValidationSplit.fit(versesAsFeatures);
         Arrays.sort(model.validationMetrics());
         System.out.println("Best validation metrics = " + model.validationMetrics()[model.validationMetrics().length - 1]);
-        LogisticRegressionModel logisticRegressionModel = (LogisticRegressionModel) model.bestModel();
 
+        LogisticRegressionModel logisticRegressionModel = (LogisticRegressionModel) model.bestModel();
         System.out.println("Best reg parameter = " + logisticRegressionModel.getRegParam());
         System.out.println("Best max iterations = " + logisticRegressionModel.getMaxIter());
+
+        return model;
+    }
+
+    private Map<String, Object> getModelStatistics(CrossValidatorModel model) {
+        Map<String, Object> modelStatistics = new HashMap<>();
+
+        Arrays.sort(model.avgMetrics());
+        modelStatistics.put("Best avg metrics", model.avgMetrics()[model.avgMetrics().length - 1]);
+
+        PipelineModel bestModel = (PipelineModel) model.bestModel();
+        Transformer[] stages = bestModel.stages();
+
+        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Word2Vec vocabulary", ((Word2VecModel) stages[8]).getVectors().count());
+        modelStatistics.put("Best vector size", ((Word2VecModel) stages[8]).getVectorSize());
+        modelStatistics.put("Best reg parameter", ((LogisticRegressionModel) stages[9]).getRegParam());
+        modelStatistics.put("Best max iterations", ((LogisticRegressionModel) stages[9]).getMaxIter());
+
+        printModelStatistics(modelStatistics);
+
+        return modelStatistics;
+    }
+
+    private void printModelStatistics(Map<String, Object> modelStatistics) {
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Model statistics:");
+        System.out.println(modelStatistics);
+        System.out.println("------------------------------------------------\n");
     }
 
 }

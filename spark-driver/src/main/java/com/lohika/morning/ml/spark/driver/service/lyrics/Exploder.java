@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-public class Exploder extends Transformer implements MLWritable, MLReadable<Exploder> {
+public class Exploder extends Transformer implements MLWritable {
 
     private String pluralCol = "filteredWords";
     private String singularCol = "filteredWord";
@@ -61,14 +61,8 @@ public class Exploder extends Transformer implements MLWritable, MLReadable<Expl
         write().save(path);
     }
 
-    @Override
-    public MLReader<Exploder> read() {
+    public static MLReader<Exploder> read() {
         return new DefaultParamsReader<>();
-    }
-
-    @Override
-    public Exploder load(String path) {
-        return read().load(path);
     }
 
 }
