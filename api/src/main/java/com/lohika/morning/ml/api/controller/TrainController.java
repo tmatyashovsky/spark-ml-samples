@@ -1,15 +1,14 @@
 package com.lohika.morning.ml.api.controller;
 
 import com.lohika.morning.ml.api.service.CatDogService;
+import com.lohika.morning.ml.api.service.DouService;
 import com.lohika.morning.ml.api.service.LyricsService;
 import com.lohika.morning.ml.api.service.MnistService;
-import com.lohika.morning.ml.api.service.DouService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -52,9 +51,8 @@ public class TrainController {
     }
 
     @RequestMapping(value = "/train_lyrics", method = RequestMethod.GET)
-    ResponseEntity trainDarkLyrics(@RequestParam(defaultValue = "50") int vectorSize,
-                                   @RequestParam(defaultValue = "2") int sentencesInVerse) {
-        lyricsService.classifyLyrics(vectorSize, sentencesInVerse);
+    ResponseEntity trainDarkLyrics() {
+        lyricsService.classifyLyrics();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

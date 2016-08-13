@@ -41,6 +41,6 @@ public class Uniter extends Transformer {
 
     @Override
     public String uid() {
-        return "Uniter" + UUID.randomUUID().toString();
+        return "Uniter-" + UUID.randomUUID().toString();
     }
 }

@@ -1,7 +1,10 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -19,6 +22,10 @@ import org.apache.spark.ml.tuning.*;
 import org.apache.spark.mllib.feature.Stemmer;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.Window;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -103,7 +110,7 @@ public class TextService {
         Verser verser = new Verser();
 
         // Create model.
-        Word2Vec word2Vec = new Word2Vec().setInputCol("verses").setOutputCol("features");
+        Word2Vec word2Vec = new Word2Vec().setInputCol("verses").setOutputCol("features").setMinCount(0);
 
         LogisticRegression logisticRegression = new LogisticRegression();
 
@@ -122,10 +129,10 @@ public class TextService {
 
         // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(new IntParam("sentencesInVerse", "sentencesInVerse", ""), new int[]{2, 4, 8, 16})
-                .addGrid(word2Vec.vectorSize(), new int[] {20, 50, 100, 150, 200, 250, 300})
-                .addGrid(logisticRegression.regParam(), new double[] {1D, 0.1D, 0.05D})
-                .addGrid(logisticRegression.maxIter(), new int[] {100, 200, 300})
+                .addGrid(new IntParam("sentencesInVerse", "sentencesInVerse", ""), new int[]{16})
+                .addGrid(word2Vec.vectorSize(), new int[] {200})
+                .addGrid(logisticRegression.regParam(), new double[] {0.05D})
+                .addGrid(logisticRegression.maxIter(), new int[] {200})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()
@@ -139,30 +146,45 @@ public class TextService {
         Arrays.sort(model.avgMetrics());
         System.out.println("Best avg metrics = " + model.avgMetrics()[model.avgMetrics().length - 1]);
 
-        Transformer[] stages = ((PipelineModel)(model.bestModel())).stages();
+        PipelineModel bestModel = (PipelineModel) model.bestModel();
+
+        Transformer[] stages = bestModel.stages();
         System.out.println("Best sentences in verse = " + ((Verser) stages[7]).getSentencesInVerse());
         System.out.println("Best vector size = "  + ((Word2VecModel) stages[8]).getVectorSize());
+        System.out.println("Word2Vec vocabulary = "  + ((Word2VecModel) stages[8]).getVectors().count());
         System.out.println("Best reg parameter = " + ((LogisticRegressionModel) stages[9]).getRegParam());
         System.out.println("Best max iterations = " + ((LogisticRegressionModel) stages[9]).getMaxIter());
+
+        try {
+            model.save("/Users/tmatyashovsky/Workspace/lyrics/models");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-//    private Dataset<Row> getValidationSet(Word2VecModel word2VecModel, int vectorSize, boolean includeVariances) {
-//        List<Row> unknownLyrics = Arrays.asList(
-//                RowFactory.create("The day that never comes"),
-//                RowFactory.create("Is this the end of the beginning"),
-//                RowFactory.create("Lost in time I wonder will my ship be found")
-//        );
-//
-//        StructType schema = new StructType(new StructField[]{
-//                new StructField("value", DataTypes.StringType, true, Metadata.empty())
-//        });
-//
-//        Dataset<Row> unknownLyricsDataset = sparkSession.createDataFrame(unknownLyrics, schema);
-//        Dataset<Row> separatedWords = getWord2VecDataset(unknownLyricsDataset);
-//        Dataset<Row> wordsAsFeatures = word2VecModel.transform(separatedWords);
-//
-//        return getFeatures(wordsAsFeatures, vectorSize, includeVariances);
-//    }
+    public double predict(String unknownLyrics) {
+        List<Row> unknownLyricsList = Collections.singletonList(
+            RowFactory.create(unknownLyrics, -1.0D)
+        );
+
+        StructType schema = new StructType(new StructField[]{
+            new StructField("value", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("label", DataTypes.DoubleType, true, Metadata.empty())
+        });
+
+        Dataset<Row> unknownLyricsDataset = sparkSession.createDataFrame(unknownLyricsList, schema);
+
+        CrossValidatorModel model = CrossValidatorModel.load("/Users/tmatyashovsky/Workspace/lyrics/models");
+        PipelineModel bestModel = (PipelineModel) model.bestModel();
+
+        Dataset<Row> predictions = bestModel.transform(unknownLyricsDataset);
+        Row prediction = predictions.collectAsList().get(0);
+
+        System.out.println("Probability: " + prediction.getAs("probability") + " " +
+                           "Prediction: " + Double.toString(prediction.getAs("prediction")));
+
+        return prediction.getAs("prediction");
+    }
 
     private Dataset<String> getLyrics(String inputDirectory, String fileName) {
         Dataset<String> lyrics = sparkSession.read().textFile(Paths.get(inputDirectory).resolve(fileName).toString());
@@ -207,12 +229,28 @@ public class TextService {
         stemmedSentences.cache();
         stemmedSentences.count();
 
+        // Wrap string into array. This is a requirement for Word2Vec input.
+        Dataset<Row> word2VecDataset = stemmedSentences.withColumn("sentence",  functions.split(stemmedSentences.col("stemmedSentence"), " "));
+
+        // Create model.
+        Word2Vec word2Vec = new Word2Vec()
+                .setInputCol("sentence")
+                .setOutputCol("features")
+                // TODO: using pipeline instead in order to test different values.
+                .setVectorSize(200)
+                .setMaxSentenceLength(10)
+                .setMinCount(0);
+
+        // Fit model.
+        Word2VecModel word2VecModel = word2Vec.fit(word2VecDataset);
+        System.out.println("Word2Vec vocabulary = " + word2VecModel.getVectors().count());
+
         Column verseSplitExpression = functions
                 .when(
                         functions
                                 .column("rowNumber")
                                 // TODO: using pipeline instead in order to test different values.
-                                .mod(4)
+                                .mod(16)
                                 .equalTo(1),
                         1
                 )
@@ -238,18 +276,7 @@ public class TextService {
                 functions.split(functions.concat_ws(" ", functions.collect_list(functions.column("stemmedSentence"))), " ").as("verses")
         );
 
-        // Create model.
-        Word2Vec word2Vec = new Word2Vec()
-                .setInputCol("verses")
-                .setOutputCol("features")
-                // TODO: using pipeline instead in order to test different values.
-                .setVectorSize(100)
-                .setMaxSentenceLength(10)
-                .setMinCount(0);
-
-        // Fit model.
-        Word2VecModel word2VecModel = word2Vec.fit(verses);
-        System.out.println("Word2Vec vocabulary = " + word2VecModel.getVectors().count());
+        word2VecModel.setInputCol("verses");
 
         // Train verses and get verses as features.
         Dataset<Row> versesAsFeatures = word2VecModel.transform(verses);
@@ -258,8 +285,8 @@ public class TextService {
         LogisticRegression logisticRegression = new LogisticRegression();
 
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(logisticRegression.regParam(), new double[] {1D, 0.1D, 0.05D})
-                .addGrid(logisticRegression.maxIter(), new int[] {100, 200, 300})
+                .addGrid(logisticRegression.regParam(), new double[] {1D})
+                .addGrid(logisticRegression.maxIter(), new int[] {10})
                 .build();
 
         TrainValidationSplit trainValidationSplit = new TrainValidationSplit()

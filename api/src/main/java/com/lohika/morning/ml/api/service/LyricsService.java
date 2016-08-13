@@ -14,8 +14,22 @@ public class LyricsService {
     @Autowired
     private TextService textService;
 
-    public void classifyLyrics(int vectorSize, int sentencesInVerse) {
-        textService.classifyDarkLyrics(lyricsTrainingSetDirectoryPath, vectorSize, sentencesInVerse);
+    public void classifyLyrics() {
+        textService.classifyLyricsWithPipeline(lyricsTrainingSetDirectoryPath);
+    }
+
+    public Genre predictGenre(String unknownLyrics) {
+        double prediction = textService.predict(unknownLyrics);
+
+        if (0.0D == prediction) {
+            return Genre.METAL;
+        }
+
+        if (1.0D == prediction) {
+            return Genre.POP;
+        }
+
+        return Genre.UNKNOWN;
     }
 
 }
