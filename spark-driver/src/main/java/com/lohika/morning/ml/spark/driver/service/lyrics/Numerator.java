@@ -1,8 +1,10 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
+import java.io.IOException;
 import java.util.UUID;
 import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.ParamMap;
+import org.apache.spark.ml.util.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.expressions.Window;
@@ -10,10 +12,19 @@ import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
-public class Numerator extends Transformer {
+public class Numerator extends Transformer implements MLWritable, MLReadable<Numerator> {
 
     private String id = "id";
     private String rowNumber = "rowNumber";
+    private String uid;
+
+    public Numerator(String uid) {
+        this.uid = uid;
+    }
+
+    public Numerator() {
+        this.uid = "Numerator" + "_" + UUID.randomUUID().toString();
+    }
 
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
@@ -33,12 +44,32 @@ public class Numerator extends Transformer {
 
     @Override
     public Transformer copy(ParamMap extra) {
-        return new Numerator();
+        return super.defaultCopy(extra);
     }
 
     @Override
     public String uid() {
-        return "Numerator-" + UUID.randomUUID().toString();
+        return this.uid;
+    }
+
+    @Override
+    public MLWriter write() {
+        return new DefaultParamsWriter(this);
+    }
+
+    @Override
+    public void save(String path) throws IOException {
+        write().save(path);
+    }
+
+    @Override
+    public MLReader<Numerator> read() {
+        return new DefaultParamsReader<>();
+    }
+
+    @Override
+    public Numerator load(String path) {
+        return read().load(path);
     }
 
 }

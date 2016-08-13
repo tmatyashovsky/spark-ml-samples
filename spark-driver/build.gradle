@@ -10,7 +10,6 @@ dependencies {
     compile("org.apache.spark:spark-core_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("org.apache.spark:spark-sql_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("org.apache.spark:spark-mllib_$apacheSparkScalaVersion:$apacheSparkVersion")
-    compile("master:spark-stemming_2.10:0.1.1")
 
 //    compile ("org.deeplearning4j:deeplearning4j-core:0.4.0")
 //    compile ("org.deeplearning4j:dl4j-spark_2.11:0.4.0")

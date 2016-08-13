@@ -16,10 +16,8 @@ import org.apache.spark.ml.feature.StopWordsRemover;
 import org.apache.spark.ml.feature.Tokenizer;
 import org.apache.spark.ml.feature.Word2Vec;
 import org.apache.spark.ml.feature.Word2VecModel;
-import org.apache.spark.ml.param.IntParam;
 import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.tuning.*;
-import org.apache.spark.mllib.feature.Stemmer;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.types.DataTypes;
@@ -104,7 +102,7 @@ public class TextService {
         Exploder exploder = new Exploder();
 
         // Perform stemming.
-        Stemmer stemmer = new Stemmer().setInputCol("filteredWord").setOutputCol("stemmedWord").setLanguage("English");
+        Stemmer stemmer = new Stemmer();
 
         Uniter uniter = new Uniter();
         Verser verser = new Verser();
@@ -129,10 +127,10 @@ public class TextService {
 
         // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(new IntParam("sentencesInVerse", "sentencesInVerse", ""), new int[]{16})
-                .addGrid(word2Vec.vectorSize(), new int[] {200})
-                .addGrid(logisticRegression.regParam(), new double[] {0.05D})
-                .addGrid(logisticRegression.maxIter(), new int[] {200})
+                .addGrid(verser.sentencesInVerse(), new int[]{2, 4})
+                .addGrid(word2Vec.vectorSize(), new int[] {10})
+                .addGrid(logisticRegression.regParam(), new double[] {1D})
+                .addGrid(logisticRegression.maxIter(), new int[] {10})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()
@@ -156,10 +154,12 @@ public class TextService {
         System.out.println("Best max iterations = " + ((LogisticRegressionModel) stages[9]).getMaxIter());
 
         try {
-            model.save("/Users/tmatyashovsky/Workspace/lyrics/models");
+            model.write().overwrite().save("/Users/tmatyashovsky/Workspace/lyrics/models");
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        predict("123");
     }
 
     public double predict(String unknownLyrics) {
@@ -217,7 +217,7 @@ public class TextService {
         Dataset<Row> filteredWords = filtered.withColumn("filteredWord", filteredArray);
 
         // Perform stemming.
-        Dataset<Row> stemmedWords = new Stemmer()
+        Dataset<Row> stemmedWords = new org.apache.spark.mllib.feature.Stemmer()
                 .setInputCol("filteredWord")
                 .setOutputCol("stemmedWord")
                 .setLanguage("English")
