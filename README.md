@@ -1,7 +1,7 @@
 # Sample Application for "Introduction to ML with Apache Spark MLlib" Presentation
 
 ## Presentation
-Link to the presentation: http://www.slideshare.net/tmatyashovsky/lambda-architecture-with-apache-spark
+Link to the presentation: http://www.slideshare.net/tmatyashovsky/introduction-to-ml-with-apache-spark-mllib
 
 ## Idea
 Create few examples to demonstrate regression, classification and clustering to Java developers.
