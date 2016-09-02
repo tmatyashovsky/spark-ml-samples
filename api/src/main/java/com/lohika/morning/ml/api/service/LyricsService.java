@@ -1,5 +1,6 @@
 package com.lohika.morning.ml.api.service;
 
+import com.lohika.morning.ml.spark.driver.service.lyrics.GenrePrediction;
 import com.lohika.morning.ml.spark.driver.service.lyrics.TextService;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,18 +24,8 @@ public class LyricsService {
             lyricsTrainingSetDirectoryPath, lyricsModelDirectoryPath);
     }
 
-    public Genre predictGenre(String unknownLyrics) {
-        double prediction = textService.predict(unknownLyrics, lyricsModelDirectoryPath);
-
-        if (0.0D == prediction) {
-            return Genre.METAL;
-        }
-
-        if (1.0D == prediction) {
-            return Genre.POP;
-        }
-
-        return Genre.UNKNOWN;
+    public GenrePrediction predictGenre(String unknownLyrics) {
+        return textService.predict(unknownLyrics, lyricsModelDirectoryPath);
     }
 
 }

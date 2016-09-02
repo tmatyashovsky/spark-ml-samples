@@ -14,6 +14,7 @@ import org.apache.spark.ml.feature.StopWordsRemover;
 import org.apache.spark.ml.feature.Tokenizer;
 import org.apache.spark.ml.feature.Word2Vec;
 import org.apache.spark.ml.feature.Word2VecModel;
+import org.apache.spark.ml.linalg.DenseVector;
 import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.tuning.*;
 import org.apache.spark.sql.*;
@@ -60,7 +61,7 @@ public class TextService {
                                         .union(eTypeLyrics)
                                         .union(michaelJacksonLyrics);
 
-        Dataset<Row> popMusic = popLyrics.withColumn("label", functions.lit(1D));
+        Dataset<Row> popMusic = popLyrics.withColumn("label", functions.lit(Genre.POP.getValue()));
         System.out.println("Pop music sentences = " + popMusic.count());
 
         return popMusic;
@@ -95,7 +96,7 @@ public class TextService {
                                                 .union(helloweenLyrics)
                                                 .union(ozzyOzbourneLyrics);
 
-        Dataset<Row> metalMusic = metalLyrics.withColumn("label", functions.lit(0D));
+        Dataset<Row> metalMusic = metalLyrics.withColumn("label", functions.lit(Genre.METAL.getValue()));
         System.out.println("Metal music sentences = " + metalLyrics.count());
 
         return metalMusic;
@@ -145,10 +146,10 @@ public class TextService {
 
         // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(verser.sentencesInVerse(), new int[]{2, 4, 8, 16, 32})
-                .addGrid(word2Vec.vectorSize(), new int[] {50, 100, 150, 200, 250, 300})
-                .addGrid(logisticRegression.regParam(), new double[] {0.05D})
-                .addGrid(logisticRegression.maxIter(), new int[] {200})
+                .addGrid(verser.sentencesInVerse(), new int[]{4, 8, 16})
+                .addGrid(word2Vec.vectorSize(), new int[] {100, 200, 300})
+                .addGrid(logisticRegression.regParam(), new double[] {0.01D, 0.05D})
+                .addGrid(logisticRegression.maxIter(), new int[] {100, 150, 200})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()
@@ -165,9 +166,9 @@ public class TextService {
         return getModelStatistics(model);
     }
 
-    public double predict(final String unknownLyrics, final String modelDirectory) {
+    public GenrePrediction predict(final String unknownLyrics, final String modelDirectory) {
         List<Row> unknownLyricsList = Collections.singletonList(
-            RowFactory.create(unknownLyrics, -1.0D)
+            RowFactory.create(unknownLyrics, Genre.UNKNOWN.getValue())
         );
 
         StructType schema = new StructType(new StructField[]{
@@ -182,15 +183,18 @@ public class TextService {
 
         PipelineModel bestModel = (PipelineModel) model.bestModel();
 
-        Dataset<Row> predictions = bestModel.transform(unknownLyricsDataset);
-        Row prediction = predictions.first();
+        Dataset<Row> predictionsDataset = bestModel.transform(unknownLyricsDataset);
+        Row predictionRow = predictionsDataset.first();
+
+        final DenseVector probability = predictionRow.getAs("probability");
+        final Double prediction = predictionRow.getAs("prediction");
 
         System.out.println("\n------------------------------------------------");
-        System.out.println("Probability: " + prediction.getAs("probability"));
-        System.out.println("Prediction: " + Double.toString(prediction.getAs("prediction")));
+        System.out.println("Probability: " + probability);
+        System.out.println("Prediction: " + Double.toString(prediction));
         System.out.println("------------------------------------------------\n");
 
-        return prediction.getAs("prediction");
+        return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1));
     }
 
     private Dataset<String> getLyrics(String inputDirectory, String fileName) {
@@ -338,6 +342,16 @@ public class TextService {
         System.out.println("Model statistics:");
         System.out.println(modelStatistics);
         System.out.println("------------------------------------------------\n");
+    }
+
+    private Genre getGenre(Double value) {
+        for (Genre genre: Genre.values()){
+            if (genre.getValue().equals(value)) {
+                return genre;
+            }
+        }
+
+        return Genre.UNKNOWN;
     }
 
 }

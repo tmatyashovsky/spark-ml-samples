@@ -6,10 +6,8 @@ import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.IntParam;
 import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.util.*;
-import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -29,29 +27,10 @@ public class Verser extends Transformer implements MLWritable {
 
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
-        Column verseSplitExpression = functions
-                .when(
-                        functions
-                                .column("rowNumber")
-                                .mod(get(sentencesInVerse()).get())
-                                .equalTo(1),
-                        1
-                )
-                .otherwise(0);
-
-        Dataset<Row> sententencesPreparedForSplit = sentences.withColumn("verseStart", verseSplitExpression);
-
-        Dataset<Row> verses = sententencesPreparedForSplit
-                .withColumn("verseId",
-                        functions
-                                .sum("verseStart")
-                                .over(
-                                        Window
-                                                .orderBy("rowNumber")
-                                                .rowsBetween(Long.MIN_VALUE, 0)
-                                )
-                )
-                .select("rowNumber", "verseId", "label", "stemmedSentence");
+        Dataset<Row> verses = sentences.withColumn(
+                "verseId",
+                functions.floor(functions.column("rowNumber").minus(1).divide(get(sentencesInVerse()).get())).plus(1)
+        );
 
         verses = verses.groupBy("verseId").agg(
                 functions.first("rowNumber").as("rowIdForVerse"),
