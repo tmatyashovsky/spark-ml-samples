@@ -27,7 +27,7 @@ public class Uniter extends Transformer implements MLWritable {
     @Override
     public Dataset<Row> transform(Dataset<?> words) {
         // Unite words into a sentence again.
-        Dataset<Row> stemmedSentences = words.groupBy("rowNumber", "clean", "label")
+        Dataset<Row> stemmedSentences = words.groupBy("rowNumber", "label")
                     .agg(functions.column("rowNumber"),
                          functions.concat_ws(" ", functions.collect_list("stemmedWord")).as("stemmedSentence"));
         stemmedSentences.cache();
@@ -40,7 +40,6 @@ public class Uniter extends Transformer implements MLWritable {
     public StructType transformSchema(StructType schema) {
         return new StructType(new StructField[]{
                 DataTypes.createStructField("rowNumber", DataTypes.LongType, false),
-                DataTypes.createStructField("clean", DataTypes.StringType, false),
                 DataTypes.createStructField("label", DataTypes.DoubleType, false),
                 DataTypes.createStructField("stemmedSentence", DataTypes.StringType, false)
         });

@@ -104,6 +104,8 @@ public class TextService {
 
     public Map<String, Object> classifyLyricsWithPipeline(final String lyricsInputDirectory, final String modelOutputDirectory) {
         Dataset<Row> sentences = getPopMusic(lyricsInputDirectory).union(getMetalMusic(lyricsInputDirectory));
+        sentences = sentences.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
+        sentences.count();
 
         // Remove all punctuation symbols.
         Cleanser cleanser = new Cleanser();

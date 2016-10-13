@@ -14,7 +14,6 @@ import org.apache.spark.sql.types.StructType;
 
 public class Numerator extends Transformer implements MLWritable {
 
-    private String id = "id";
     private String rowNumber = "rowNumber";
     private String uid;
 
@@ -29,17 +28,17 @@ public class Numerator extends Transformer implements MLWritable {
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
         // Add unique id to each sentence of lyrics.
-        Dataset<Row> sentencesWithIds = sentences.withColumn(id, functions.monotonically_increasing_id());
-        sentencesWithIds = sentencesWithIds.withColumn(rowNumber, functions.row_number().over(Window.orderBy("id")));
+        Dataset<Row> sentencesWithIds = sentences.withColumn("id", functions.monotonically_increasing_id());
+        Dataset<Row> sentencesWithRowNumber = sentencesWithIds.withColumn(rowNumber, functions.row_number().over(Window.orderBy("id")));
+        sentencesWithRowNumber = sentencesWithRowNumber.drop("id");
 
-        return sentencesWithIds;
+        return sentencesWithRowNumber;
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
         return schema
-                .add(DataTypes.createStructField(id, DataTypes.LongType, false))
-                .add(DataTypes.createStructField(rowNumber, DataTypes.LongType, false));
+                .add(DataTypes.createStructField(rowNumber, DataTypes.IntegerType, false));
     }
 
     @Override

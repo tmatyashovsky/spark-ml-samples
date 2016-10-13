@@ -7,9 +7,9 @@ import org.tartarus.snowball.SnowballStemmer;
 
 public class StemmingFunction implements MapFunction<Row, Row> {
 
-    private static SnowballStemmer stemmer = initializeStemmer();
+    private SnowballStemmer stemmer = initializeStemmer();
 
-    private static SnowballStemmer initializeStemmer () {
+    private SnowballStemmer initializeStemmer () {
         try {
             Class stemClass = Class.forName("org.tartarus.snowball.ext.englishStemmer");
 
@@ -26,14 +26,8 @@ public class StemmingFunction implements MapFunction<Row, Row> {
         String stemmedWord = stemmer.getCurrent();
 
         return RowFactory.create(
-                input.getAs("value"),
-                input.getAs("label"),
-                input.getAs("clean"),
-                input.getAs("id"),
-                input.getAs("rowNumber"),
-                input.getAs("words"),
-                input.getAs("filteredWords"),
-                input.getAs("filteredWord"),
+                input.getInt(input.schema().fieldIndex("rowNumber")),
+                input.getDouble(input.schema().fieldIndex("label")),
                 stemmedWord);
     }
 

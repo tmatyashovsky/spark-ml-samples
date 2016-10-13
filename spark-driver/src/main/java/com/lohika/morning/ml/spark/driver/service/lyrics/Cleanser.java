@@ -7,14 +7,17 @@ import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.util.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.functions;
+import static org.apache.spark.sql.functions.*;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 public class Cleanser extends Transformer implements MLWritable {
 
-    private String inputCol = "value";
-    private String outputCol = "clean";
+    private static final String INPUT_COL = "value";
+    private static final String OUTPUT_COL = "clean";
+    private static final String LABEL = "label";
+
     private String uid;
 
     public Cleanser(String uid) {
@@ -28,14 +31,19 @@ public class Cleanser extends Transformer implements MLWritable {
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
         // Remove all punctuation symbols.
-        return sentences.withColumn(outputCol,
-                                    functions.regexp_replace(sentences.col(inputCol), "[^\\w\\s]", ""));
+        sentences = sentences.withColumn(OUTPUT_COL, regexp_replace(trim(column(INPUT_COL)), "[^\\w\\s]", ""));
+        sentences = sentences.drop(INPUT_COL);
+
+        // Remove double spaces.
+        return sentences.withColumn(OUTPUT_COL, regexp_replace(column(OUTPUT_COL), "\\s{2,}", " "));
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
-        return schema
-                .add(DataTypes.createStructField(outputCol, DataTypes.StringType, false));
+        return new StructType(new StructField[]{
+                DataTypes.createStructField(LABEL, DataTypes.DoubleType, false),
+                DataTypes.createStructField(OUTPUT_COL, DataTypes.StringType, false)
+        });
     }
 
     @Override

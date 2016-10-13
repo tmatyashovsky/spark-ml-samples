@@ -10,9 +10,14 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 public class Stemmer extends Transformer implements MLWritable {
+
+    private static final String ROW_NUMBER = "rowNumber";
+    private static final String LABEL = "label";
+    private static final String STEMMED_WORD = "stemmedWord";
 
     private String uid;
 
@@ -36,7 +41,11 @@ public class Stemmer extends Transformer implements MLWritable {
 
     @Override
     public StructType transformSchema(StructType schema) {
-        return schema.add(DataTypes.createStructField("stemmedWord", DataTypes.StringType, false));
+        return new StructType(new StructField[]{
+                DataTypes.createStructField(ROW_NUMBER, DataTypes.IntegerType, false),
+                DataTypes.createStructField(LABEL, DataTypes.DoubleType, false),
+                DataTypes.createStructField(STEMMED_WORD, DataTypes.StringType, false)
+        });
     }
 
     @Override

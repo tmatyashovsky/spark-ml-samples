@@ -11,18 +11,12 @@ dependencies {
     compile("org.apache.spark:spark-sql_$apacheSparkScalaVersion:$apacheSparkVersion")
     compile("org.apache.spark:spark-mllib_$apacheSparkScalaVersion:$apacheSparkVersion")
 
-//    compile ("org.deeplearning4j:deeplearning4j-core:0.4.0")
-//    compile ("org.deeplearning4j:dl4j-spark_2.11:0.4.0")
-//    compile ("org.nd4j:nd4j-native:0.4.0")
-//    compile ("org.nd4j:nd4j-native-platform:0.4.0")
-//    compile ("org.nd4j:nd4j-native-api:0.4.0")
-
     compile("org.slf4j:slf4j-api:$slf4jVersion")
     compile("ch.qos.logback:logback-classic:$logbackVersion")
-    compile("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    compile("com.fasterxml.jackson.core:jackson-core:$sparkJacksonVersion")
+    compile("com.fasterxml.jackson.core:jackson-databind:$sparkJacksonVersion")
     compile('org.slf4j:log4j-over-slf4j:1.7.21')
 
     testCompile("org.springframework:spring-test:$springFrameworkVersion")
     testCompile("junit:junit:$junitVersion")
-    compile("junit:junit:$junitVersion")
 }
