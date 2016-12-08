@@ -1,25 +1,20 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
+import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column;
 import java.io.IOException;
 import java.util.UUID;
 import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.util.*;
-import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import static org.apache.spark.sql.functions.column;
 import static org.apache.spark.sql.functions.explode;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 public class Exploder extends Transformer implements MLWritable {
 
-    private static final String ROW_NUMBER = "rowNumber";
-    private static final String LABEL = "label";
-    private static final String PLURAL_COL = "filteredWords";
-    private static final String SINGULAR_COL = "filteredWord";
     private String uid;
 
     public Exploder(String uid) {
@@ -33,16 +28,17 @@ public class Exploder extends Transformer implements MLWritable {
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
         // Create as many rows as elements in provided column.
-        Column singular = explode(column(PLURAL_COL)).as(SINGULAR_COL);
-        return sentences.select(column(ROW_NUMBER), column(LABEL), singular);
+        org.apache.spark.sql.Column singular = explode(column(Column.FILTERED_WORDS.getName())).as(Column.FILTERED_WORD.getName());
+        return sentences.select(column(Column.ID.getName()), column(Column.ROW_NUMBER.getName()), column(Column.LABEL.getName()), singular);
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
         return new StructType(new StructField[]{
-                DataTypes.createStructField(ROW_NUMBER, DataTypes.LongType, false),
-                DataTypes.createStructField(LABEL, DataTypes.DoubleType, false),
-                DataTypes.createStructField(SINGULAR_COL, DataTypes.StringType, false)
+                Column.ID.getStructType(),
+                Column.ROW_NUMBER.getStructType(),
+                Column.LABEL.getStructType(),
+                Column.FILTERED_WORD.getStructType()
         });
     }
 

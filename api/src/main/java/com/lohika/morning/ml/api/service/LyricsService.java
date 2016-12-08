@@ -20,7 +20,7 @@ public class LyricsService {
     private TextService textService;
 
     public Map<String, Object> classifyLyrics() {
-        return textService.classifyLyricsWithPipeline(
+        return textService.classifyLyricsUsingLogisticRegression(
             lyricsTrainingSetDirectoryPath, lyricsModelDirectoryPath);
     }
 

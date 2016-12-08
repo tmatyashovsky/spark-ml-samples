@@ -16,11 +16,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ImageService {
 
-    public static void main(String[] args) {
-//        new ImageService().processImages(args[0], args[1], args[2], Boolean.parseBoolean(args[3]));
-        new ImageService().processImages("/Users/tmatyashovsky/Workspace/cats&dogs/test-set-images", "processed", "test-set.csv", false);
-    }
-
     public void processImages(String inputDirectory,
                               String outputDirectoryName,
                               String outputFileName,

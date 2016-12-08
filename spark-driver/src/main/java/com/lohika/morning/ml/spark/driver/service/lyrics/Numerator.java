@@ -1,5 +1,7 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
+import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.ID;
+import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.ROW_NUMBER;
 import java.io.IOException;
 import java.util.UUID;
 import org.apache.spark.ml.Transformer;
@@ -9,12 +11,10 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.functions;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
 public class Numerator extends Transformer implements MLWritable {
 
-    private String rowNumber = "rowNumber";
     private String uid;
 
     public Numerator(String uid) {
@@ -28,17 +28,14 @@ public class Numerator extends Transformer implements MLWritable {
     @Override
     public Dataset<Row> transform(Dataset<?> sentences) {
         // Add unique id to each sentence of lyrics.
-        Dataset<Row> sentencesWithIds = sentences.withColumn("id", functions.monotonically_increasing_id());
-        Dataset<Row> sentencesWithRowNumber = sentencesWithIds.withColumn(rowNumber, functions.row_number().over(Window.orderBy("id")));
-        sentencesWithRowNumber = sentencesWithRowNumber.drop("id");
-
-        return sentencesWithRowNumber;
+        Dataset<Row> sentencesWithIds = sentences.withColumn(ROW_NUMBER.getName(),
+                     functions.row_number().over(Window.orderBy(ID.getName()).partitionBy(ID.getName())));
+        return sentencesWithIds;
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
-        return schema
-                .add(DataTypes.createStructField(rowNumber, DataTypes.IntegerType, false));
+        return schema.add(ROW_NUMBER.getStructType());
     }
 
     @Override
