@@ -1,4 +1,4 @@
-package com.lohika.morning.ml.spark.driver.service.lyrics;
+package com.lohika.morning.ml.spark.driver.service.lyrics.transformer;
 
 import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column;
 import java.io.IOException;
@@ -8,40 +8,37 @@ import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.util.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.functions;
+import static org.apache.spark.sql.functions.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-public class Uniter extends Transformer implements MLWritable {
+public class Cleanser extends Transformer implements MLWritable {
 
     private String uid;
 
-    public Uniter(String uid) {
+    public Cleanser(String uid) {
         this.uid = uid;
     }
 
-    public Uniter() {
-        this.uid = "Uniter" + "_" + UUID.randomUUID().toString();
+    public Cleanser() {
+        this.uid = "Cleanser" + "_" + UUID.randomUUID().toString();
     }
 
     @Override
-    public Dataset<Row> transform(Dataset<?> words) {
-        // Unite words into a sentence again.
-        Dataset<Row> stemmedSentences = words.groupBy(Column.ID.getName(), Column.ROW_NUMBER.getName(), Column.LABEL.getName())
-                        .agg(functions.concat_ws(" ", functions.collect_list(Column.STEMMED_WORD.getName())).as(Column.STEMMED_SENTENCE.getName()));
-        stemmedSentences.cache();
-        stemmedSentences.count();
+    public Dataset<Row> transform(Dataset<?> sentences) {
+        // Remove all punctuation symbols.
+        sentences = sentences.withColumn(Column.CLEAN.getName(), regexp_replace(trim(column(Column.VALUE.getName())), "[^\\w\\s]", ""));
+        sentences = sentences.drop(Column.VALUE.getName());
 
-        return stemmedSentences;
+        // Remove double spaces.
+        return sentences.withColumn(Column.CLEAN.getName(), regexp_replace(column(Column.CLEAN.getName()), "\\s{2,}", " "));
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
         return new StructType(new StructField[]{
-                Column.ID.getStructType(),
-                Column.ROW_NUMBER.getStructType(),
                 Column.LABEL.getStructType(),
-                Column.STEMMED_SENTENCE.getStructType()
+                Column.CLEAN.getStructType()
         });
     }
 
@@ -65,7 +62,7 @@ public class Uniter extends Transformer implements MLWritable {
         write().save(path);
     }
 
-    public static MLReader<Uniter> read() {
+    public static MLReader<Cleanser> read() {
         return new DefaultParamsReader<>();
     }
 

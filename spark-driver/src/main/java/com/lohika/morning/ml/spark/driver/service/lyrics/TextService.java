@@ -1,9 +1,8 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics;
 
-import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.ID;
-import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.LABEL;
-import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.VALUE;
+import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.*;
 import com.lohika.morning.ml.spark.driver.service.MLService;
+import com.lohika.morning.ml.spark.driver.service.lyrics.transformer.*;
 import java.nio.file.Paths;
 import java.util.*;
 import org.apache.spark.ml.Pipeline;
@@ -77,13 +76,13 @@ public class TextService {
 
         // Split into words.
         Tokenizer tokenizer = new Tokenizer()
-                                    .setInputCol(com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.CLEAN.getName())
-                                    .setOutputCol(com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.WORDS.getName());
+                                    .setInputCol(CLEAN.getName())
+                                    .setOutputCol(WORDS.getName());
 
         // Remove stop words.
         StopWordsRemover stopWordsRemover = new StopWordsRemover()
-                .setInputCol(com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.WORDS.getName())
-                .setOutputCol(com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.FILTERED_WORDS.getName());
+                .setInputCol(WORDS.getName())
+                .setOutputCol(FILTERED_WORDS.getName());
 
         // Create as many rows as words. This is needed or Stemmer.
         Exploder exploder = new Exploder();
@@ -136,20 +135,22 @@ public class TextService {
 
     public Map<String, Object> classifyLyricsUsingNaiveBayes(final String lyricsInputDirectory, final String modelOutputDirectory) {
         Dataset sentences = readLyricsFromDirectory(lyricsInputDirectory);
-        sentences = sentences.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
-        sentences.count();
 
         // Remove all punctuation symbols.
         Cleanser cleanser = new Cleanser();
 
-        // Add id and rowNumber based on it.
+        // Add rowNumber based on it.
         Numerator numerator = new Numerator();
 
         // Split into words.
-        Tokenizer tokenizer = new Tokenizer().setInputCol("clean").setOutputCol("words");
+        Tokenizer tokenizer = new Tokenizer()
+                .setInputCol(CLEAN.getName())
+                .setOutputCol(WORDS.getName());
 
         // Remove stop words.
-        StopWordsRemover stopWordsRemover = new StopWordsRemover().setInputCol("words").setOutputCol("filteredWords");
+        StopWordsRemover stopWordsRemover = new StopWordsRemover()
+                .setInputCol(WORDS.getName())
+                .setOutputCol(FILTERED_WORDS.getName());
 
         // Create as many rows as words. This is needed or Stemmer.
         Exploder exploder = new Exploder();
@@ -158,10 +159,9 @@ public class TextService {
         Stemmer stemmer = new Stemmer();
 
         Uniter uniter = new Uniter();
-
         Verser verser = new Verser();
 
-        CountVectorizer countVectorizer = new CountVectorizer().setInputCol("verses").setOutputCol("features");
+        CountVectorizer countVectorizer = new CountVectorizer().setInputCol(VERSES.getName()).setOutputCol("features");
 
         NaiveBayes naiveBayes = new NaiveBayes();
 

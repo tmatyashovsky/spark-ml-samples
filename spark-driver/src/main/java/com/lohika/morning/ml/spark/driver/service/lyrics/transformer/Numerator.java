@@ -1,4 +1,4 @@
-package com.lohika.morning.ml.spark.driver.service.lyrics;
+package com.lohika.morning.ml.spark.driver.service.lyrics.transformer;
 
 import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.ID;
 import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.ROW_NUMBER;

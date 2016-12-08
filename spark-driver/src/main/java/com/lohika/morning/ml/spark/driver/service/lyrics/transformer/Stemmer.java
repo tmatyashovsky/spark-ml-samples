@@ -1,6 +1,7 @@
-package com.lohika.morning.ml.spark.driver.service.lyrics;
+package com.lohika.morning.ml.spark.driver.service.lyrics.transformer;
 
 import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column;
+import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.StemmingFunction;
 import java.io.IOException;
 import java.util.UUID;
 import org.apache.spark.ml.Transformer;
@@ -8,48 +9,45 @@ import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.util.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import static org.apache.spark.sql.functions.*;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-public class Cleanser extends Transformer implements MLWritable {
+public class Stemmer extends Transformer implements MLWritable {
 
     private String uid;
 
-    public Cleanser(String uid) {
+    public Stemmer(String uid) {
         this.uid = uid;
     }
 
-    public Cleanser() {
-        this.uid = "Cleanser" + "_" + UUID.randomUUID().toString();
+    public Stemmer() {
+        this.uid = "CustomStemmer" + "_" + UUID.randomUUID().toString();
     }
 
     @Override
-    public Dataset<Row> transform(Dataset<?> sentences) {
-        // Remove all punctuation symbols.
-        sentences = sentences.withColumn(Column.CLEAN.getName(), regexp_replace(trim(column(Column.VALUE.getName())), "[^\\w\\s]", ""));
-        sentences = sentences.drop(Column.VALUE.getName());
+    public String uid() {
+        return this.uid;
+    }
 
-        // Remove double spaces.
-        return sentences.withColumn(Column.CLEAN.getName(), regexp_replace(column(Column.CLEAN.getName()), "\\s{2,}", " "));
+    @Override
+    public Dataset<Row> transform(Dataset dataset) {
+        return dataset.map(new StemmingFunction(), RowEncoder.apply(this.transformSchema(dataset.schema())));
     }
 
     @Override
     public StructType transformSchema(StructType schema) {
         return new StructType(new StructField[]{
+                Column.ID.getStructType(),
+                Column.ROW_NUMBER.getStructType(),
                 Column.LABEL.getStructType(),
-                Column.CLEAN.getStructType()
+                Column.STEMMED_WORD.getStructType()
         });
     }
 
     @Override
     public Transformer copy(ParamMap extra) {
         return super.defaultCopy(extra);
-    }
-
-    @Override
-    public String uid() {
-        return this.uid;
     }
 
     @Override
@@ -62,7 +60,7 @@ public class Cleanser extends Transformer implements MLWritable {
         write().save(path);
     }
 
-    public static MLReader<Cleanser> read() {
+    public static MLReader<Stemmer> read() {
         return new DefaultParamsReader<>();
     }
 

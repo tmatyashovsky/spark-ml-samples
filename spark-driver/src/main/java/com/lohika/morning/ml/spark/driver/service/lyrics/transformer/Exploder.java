@@ -1,4 +1,4 @@
-package com.lohika.morning.ml.spark.driver.service.lyrics;
+package com.lohika.morning.ml.spark.driver.service.lyrics.transformer;
 
 import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column;
 import java.io.IOException;
