@@ -12,6 +12,10 @@ public class GenrePrediction {
         this.popProbability = popProbability;
     }
 
+    public GenrePrediction(String genre) {
+        this.genre = genre;
+    }
+
     public String getGenre() {
         return genre;
     }

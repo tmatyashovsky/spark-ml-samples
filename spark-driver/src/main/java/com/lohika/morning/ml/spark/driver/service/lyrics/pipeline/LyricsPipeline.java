@@ -1,0 +1,137 @@
+package com.lohika.morning.ml.spark.driver.service.lyrics.pipeline;
+
+import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.*;
+import com.lohika.morning.ml.spark.driver.service.MLService;
+import com.lohika.morning.ml.spark.driver.service.lyrics.Genre;
+import com.lohika.morning.ml.spark.driver.service.lyrics.GenrePrediction;
+import java.nio.file.Paths;
+import java.util.*;
+import org.apache.spark.ml.PipelineModel;
+import org.apache.spark.ml.linalg.DenseVector;
+import org.apache.spark.ml.tuning.CrossValidatorModel;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+
+public abstract class LyricsPipeline {
+
+    @Autowired
+    private SparkSession sparkSession;
+
+    @Autowired
+    private MLService mlService;
+
+    @Value("${lyrics.training.set.directory.path}")
+    private String lyricsTrainingSetDirectoryPath;
+
+    @Value("${lyrics.model.directory.path}")
+    private String lyricsModelDirectoryPath;
+
+    public abstract Map<String,Object> classify();
+
+    public GenrePrediction predict(final String unknownLyrics) {
+        List<Row> unknownLyricsList = Collections.singletonList(
+                RowFactory.create(unknownLyrics, Genre.UNKNOWN.getValue(), "unknown")
+        );
+
+        StructType schema = new StructType(new StructField[]{
+                VALUE.getStructType(),
+                LABEL.getStructType(),
+                ID.getStructType()
+        });
+
+        Dataset<Row> unknownLyricsDataset = sparkSession.createDataFrame(unknownLyricsList, schema);
+
+        CrossValidatorModel model = mlService.loadCrossValidationModel(getModelDirectory());
+        getPipelineStatistics(model);
+
+        PipelineModel bestModel = (PipelineModel) model.bestModel();
+
+        Dataset<Row> predictionsDataset = bestModel.transform(unknownLyricsDataset);
+        Row predictionRow = predictionsDataset.first();
+
+        System.out.println("\n------------------------------------------------");
+        final Double prediction = predictionRow.getAs("prediction");
+        System.out.println("Prediction: " + Double.toString(prediction));
+
+        if (Arrays.asList(predictionsDataset.columns()).contains("probability")) {
+            final DenseVector probability = predictionRow.getAs("probability");
+            System.out.println("Probability: " + probability);
+            System.out.println("------------------------------------------------\n");
+
+            return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1));
+        }
+
+        System.out.println("------------------------------------------------\n");
+        return new GenrePrediction(getGenre(prediction).getName());
+    }
+
+    protected Dataset<Row> readLyrics() {
+        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL)
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP));
+        // Reduce the input amount of partition minimal amount (spark.default.parallelism OR 2, whatever is less)
+        input = input.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
+        // Force caching.
+        input.count();
+
+        return input;
+    }
+
+    private Dataset<Row> readLyricsForGenre(String inputDirectory, Genre genre) {
+        Dataset<Row> lyrics = readLyrics(inputDirectory, genre.name().toLowerCase() + "/*");
+        Dataset<Row> labeledLyrics = lyrics.withColumn(LABEL.getName(), functions.lit(genre.getValue()));
+
+        System.out.println(genre.name() + " music sentences = " + lyrics.count());
+
+        return labeledLyrics;
+    }
+
+    private Dataset<Row> readLyrics(String inputDirectory, String path) {
+        Dataset<String> rawLyrics = sparkSession.read().textFile(Paths.get(inputDirectory).resolve(path).toString());
+        rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).notEqual(""));
+        rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).contains(" "));
+
+        // Add source filename column as a unique id.
+        Dataset<Row> lyrics = rawLyrics.withColumn(ID.getName(), functions.input_file_name());
+
+        return lyrics;
+    }
+
+    private Genre getGenre(Double value) {
+        for (Genre genre: Genre.values()){
+            if (genre.getValue().equals(value)) {
+                return genre;
+            }
+        }
+
+        return Genre.UNKNOWN;
+    }
+
+    protected Map<String, Object> getPipelineStatistics(CrossValidatorModel model) {
+        Map<String, Object> modelStatistics = new HashMap<>();
+
+        Arrays.sort(model.avgMetrics());
+        modelStatistics.put("Best avg metrics", model.avgMetrics()[model.avgMetrics().length - 1]);
+
+        return modelStatistics;
+    }
+
+    protected void printModelStatistics(Map<String, Object> modelStatistics) {
+        System.out.println("\n------------------------------------------------");
+        System.out.println("Model statistics:");
+        System.out.println(modelStatistics);
+        System.out.println("------------------------------------------------\n");
+    }
+
+    protected void saveModel(CrossValidatorModel model, String modelOutputDirectory) {
+        this.mlService.saveModel(model, modelOutputDirectory);
+    }
+
+    protected abstract String getModelDirectory();
+
+    protected String getLyricsModelDirectoryPath() {
+        return lyricsModelDirectoryPath;
+    }
+}
