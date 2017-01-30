@@ -37,7 +37,7 @@ public class Verser extends Transformer implements MLWritable {
                 functions.first(Column.LABEL.getName()).as(Column.LABEL.getName()),
                 functions.split(functions.concat_ws(" ",
                                 functions.collect_list(
-                                        functions.column(Column.STEMMED_SENTENCE.getName()))), " ").as(Column.VERSES.getName())
+                                        functions.column(Column.STEMMED_SENTENCE.getName()))), " ").as(Column.VERSE.getName())
         );
 
         return verses.drop(Column.ID.getName()).drop(verseId);
@@ -47,7 +47,7 @@ public class Verser extends Transformer implements MLWritable {
     public StructType transformSchema(StructType schema) {
         return new StructType(new StructField[]{
                 Column.LABEL.getStructType(),
-                Column.VERSES.getStructType()
+                Column.VERSE.getStructType()
         });
     }
 

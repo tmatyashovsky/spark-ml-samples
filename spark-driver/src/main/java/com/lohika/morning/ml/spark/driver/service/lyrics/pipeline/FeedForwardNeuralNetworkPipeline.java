@@ -19,9 +19,9 @@ import org.apache.spark.sql.Dataset;
 import org.springframework.stereotype.Component;
 
 @Component("FeedForwardNeuralNetworkPipeline")
-public class FeedForwardNeuralNetworkPipeline extends LyricsPipeline {
+public class FeedForwardNeuralNetworkPipeline extends CommonLyricsPipeline {
 
-    public Map<String, Object> classify() {
+    public CrossValidatorModel classify() {
         Dataset sentences = readLyrics();
 
         // Remove all punctuation symbols.
@@ -88,11 +88,11 @@ public class FeedForwardNeuralNetworkPipeline extends LyricsPipeline {
 
         saveModel(model, getModelDirectory());
 
-        return getPipelineStatistics(model);
+        return model;
     }
 
-    protected Map<String, Object> getPipelineStatistics(CrossValidatorModel model) {
-        Map<String, Object> modelStatistics = super.getPipelineStatistics(model);
+    public Map<String, Object> getModelStatistics(CrossValidatorModel model) {
+        Map<String, Object> modelStatistics = super.getModelStatistics(model);
 
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();

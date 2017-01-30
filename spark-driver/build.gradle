@@ -17,8 +17,6 @@ dependencies {
     compile("com.fasterxml.jackson.core:jackson-databind:$sparkJacksonVersion")
     compile('org.slf4j:log4j-over-slf4j:1.7.21')
 
-    compile('com.intel.analytics.bigdl:bigdl:0.1.0-spark.2.0-SNAPSHOT')
-
     testCompile("org.springframework:spring-test:$springFrameworkVersion")
     testCompile("junit:junit:$junitVersion")
 }

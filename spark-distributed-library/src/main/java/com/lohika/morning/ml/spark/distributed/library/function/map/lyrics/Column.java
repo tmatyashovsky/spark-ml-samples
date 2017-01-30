@@ -24,9 +24,9 @@ public enum Column {
 
     STEMMED_WORD("stemmedWord", DataTypes.StringType),
 
-    STEMMED_SENTENCE("stemmedWord", DataTypes.StringType),
+    STEMMED_SENTENCE("stemmedSentence", DataTypes.StringType),
 
-    VERSES("verses", DataTypes.createArrayType(DataTypes.StringType));
+    VERSE("verse", DataTypes.createArrayType(DataTypes.StringType));
 
     private final String name;
     private final DataType dataType;

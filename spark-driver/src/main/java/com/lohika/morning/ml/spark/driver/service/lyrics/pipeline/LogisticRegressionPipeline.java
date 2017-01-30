@@ -22,9 +22,9 @@ import org.apache.spark.sql.Dataset;
 import org.springframework.stereotype.Component;
 
 @Component("LogisticRegressionPipeline")
-public class LogisticRegressionPipeline extends LyricsPipeline {
+public class LogisticRegressionPipeline extends CommonLyricsPipeline {
 
-    public Map<String, Object> classify() {
+    public CrossValidatorModel classify() {
         Dataset sentences = readLyrics();
 
         // Remove all punctuation symbols.
@@ -53,7 +53,7 @@ public class LogisticRegressionPipeline extends LyricsPipeline {
         Verser verser = new Verser();
 
         // Create model.
-        Word2Vec word2Vec = new Word2Vec().setInputCol("verses").setOutputCol("features").setMinCount(0);
+        Word2Vec word2Vec = new Word2Vec().setInputCol(VERSE.getName()).setOutputCol("features").setMinCount(0);
 
         LogisticRegression logisticRegression = new LogisticRegression();
 
@@ -89,11 +89,11 @@ public class LogisticRegressionPipeline extends LyricsPipeline {
 
         saveModel(model, getModelDirectory());
 
-        return getPipelineStatistics(model);
+        return model;
     }
 
-    protected Map<String, Object> getPipelineStatistics(CrossValidatorModel model) {
-        Map<String, Object> modelStatistics = super.getPipelineStatistics(model);
+    public Map<String, Object> getModelStatistics(CrossValidatorModel model) {
+        Map<String, Object> modelStatistics = super.getModelStatistics(model);
 
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
