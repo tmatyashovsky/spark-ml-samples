@@ -72,10 +72,10 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
 
         // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
-                .addGrid(verser.sentencesInVerse(), new int[]{16})
-                .addGrid(word2Vec.vectorSize(), new int[] {300})
+                .addGrid(verser.sentencesInVerse(), new int[]{4, 8, 16})
+                .addGrid(word2Vec.vectorSize(), new int[] {200, 300})
                 .addGrid(logisticRegression.regParam(), new double[] {0.01D})
-                .addGrid(logisticRegression.maxIter(), new int[] {200})
+                .addGrid(logisticRegression.maxIter(), new int[] {50, 100, 200})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()

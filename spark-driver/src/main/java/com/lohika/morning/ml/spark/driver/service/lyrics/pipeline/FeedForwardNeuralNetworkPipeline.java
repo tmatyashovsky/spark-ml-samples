@@ -1,5 +1,6 @@
 package com.lohika.morning.ml.spark.driver.service.lyrics.pipeline;
 
+import com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column;
 import static com.lohika.morning.ml.spark.distributed.library.function.map.lyrics.Column.*;
 import com.lohika.morning.ml.spark.driver.service.lyrics.transformer.*;
 import java.util.Map;
@@ -50,10 +51,10 @@ public class FeedForwardNeuralNetworkPipeline extends CommonLyricsPipeline {
         Verser verser = new Verser();
 
         // Create model.
-        Word2Vec word2Vec = new Word2Vec().setInputCol("verses").setOutputCol("features").setMinCount(0);
+        Word2Vec word2Vec = new Word2Vec().setInputCol(Column.VERSE.getName()).setOutputCol("features").setMinCount(0);
 
         MultilayerPerceptronClassifier multilayerPerceptronClassifier = new MultilayerPerceptronClassifier()
-                .setBlockSize(256)
+                .setBlockSize(300)
                 .setSeed(1234L)
                 .setLayers(new int[]{300, 50, 2});
 
@@ -110,6 +111,5 @@ public class FeedForwardNeuralNetworkPipeline extends CommonLyricsPipeline {
     protected String getModelDirectory() {
         return getLyricsModelDirectoryPath() + "/feed-forward-neural-network/";
     }
-
 
 }

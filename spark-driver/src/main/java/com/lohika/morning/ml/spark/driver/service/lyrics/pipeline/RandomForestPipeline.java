@@ -74,9 +74,9 @@ public class RandomForestPipeline extends CommonLyricsPipeline {
         ParamMap[] paramGrid = new ParamGridBuilder()
                 .addGrid(verser.sentencesInVerse(), new int[]{16})
                 .addGrid(word2Vec.vectorSize(), new int[] {300})
-                .addGrid(randomForest.numTrees(), new int[] {20, 30})
-                .addGrid(randomForest.maxDepth(), new int[] {50})
-                .addGrid(randomForest.maxBins(), new int[] {32})
+                .addGrid(randomForest.numTrees(), new int[] {10, 20, 30})
+                .addGrid(randomForest.maxDepth(), new int[] {20, 30})
+                .addGrid(randomForest.maxBins(), new int[] {32, 64, 128})
                 .build();
 
         CrossValidator crossValidator = new CrossValidator()
@@ -113,7 +113,7 @@ public class RandomForestPipeline extends CommonLyricsPipeline {
 
     @Override
     protected String getModelDirectory() {
-        return getLyricsModelDirectoryPath() + "/logistic-regression/";
+        return getLyricsModelDirectoryPath() + "/random-forest/";
     }
 
 }
