@@ -108,7 +108,7 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
         Map<String, Object> modelStatistics = new HashMap<>();
 
         Arrays.sort(model.avgMetrics());
-        modelStatistics.put("Best avg metrics", model.avgMetrics()[model.avgMetrics().length - 1]);
+        modelStatistics.put("Best model metrics", model.avgMetrics()[model.avgMetrics().length - 1]);
 
         return modelStatistics;
     }
