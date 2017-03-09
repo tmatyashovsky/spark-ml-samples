@@ -96,7 +96,7 @@ public class NaiveBayesTFIDFPipeline extends CommonLyricsPipeline {
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
 
-        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
         modelStatistics.put("Num features", ((HashingTF) stages[8]).getNumFeatures());
         modelStatistics.put("Min doc frequency", ((IDFModel) stages[9]).getMinDocFreq());
 

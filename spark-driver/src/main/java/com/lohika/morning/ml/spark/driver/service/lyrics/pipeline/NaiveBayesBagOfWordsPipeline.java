@@ -92,7 +92,7 @@ public class NaiveBayesBagOfWordsPipeline extends CommonLyricsPipeline {
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
 
-        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
         modelStatistics.put("Vocabulary", ((CountVectorizerModel) stages[8]).vocabulary().length);
 
         printModelStatistics(modelStatistics);

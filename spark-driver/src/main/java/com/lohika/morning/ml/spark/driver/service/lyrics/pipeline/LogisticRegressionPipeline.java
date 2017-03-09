@@ -98,11 +98,11 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
 
-        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
         modelStatistics.put("Word2Vec vocabulary", ((Word2VecModel) stages[8]).getVectors().count());
-        modelStatistics.put("Best vector size", ((Word2VecModel) stages[8]).getVectorSize());
-        modelStatistics.put("Best reg parameter", ((LogisticRegressionModel) stages[9]).getRegParam());
-        modelStatistics.put("Best max iterations", ((LogisticRegressionModel) stages[9]).getMaxIter());
+        modelStatistics.put("Vector size", ((Word2VecModel) stages[8]).getVectorSize());
+        modelStatistics.put("Reg parameter", ((LogisticRegressionModel) stages[9]).getRegParam());
+        modelStatistics.put("Max iterations", ((LogisticRegressionModel) stages[9]).getMaxIter());
 
         printModelStatistics(modelStatistics);
 

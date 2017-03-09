@@ -99,12 +99,12 @@ public class RandomForestPipeline extends CommonLyricsPipeline {
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
 
-        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
         modelStatistics.put("Word2Vec vocabulary", ((Word2VecModel) stages[8]).getVectors().count());
-        modelStatistics.put("Best vector size", ((Word2VecModel) stages[8]).getVectorSize());
-        modelStatistics.put("Best num trees", ((RandomForestClassificationModel) stages[9]).getNumTrees());
-        modelStatistics.put("Best max bins", ((RandomForestClassificationModel) stages[9]).getMaxBins());
-        modelStatistics.put("Best max depth", ((RandomForestClassificationModel) stages[9]).getMaxDepth());
+        modelStatistics.put("Vector size", ((Word2VecModel) stages[8]).getVectorSize());
+        modelStatistics.put("Num trees", ((RandomForestClassificationModel) stages[9]).getNumTrees());
+        modelStatistics.put("Max bins", ((RandomForestClassificationModel) stages[9]).getMaxBins());
+        modelStatistics.put("Max depth", ((RandomForestClassificationModel) stages[9]).getMaxDepth());
 
         printModelStatistics(modelStatistics);
 

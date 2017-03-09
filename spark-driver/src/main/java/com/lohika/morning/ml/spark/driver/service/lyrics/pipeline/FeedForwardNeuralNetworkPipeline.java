@@ -98,9 +98,9 @@ public class FeedForwardNeuralNetworkPipeline extends CommonLyricsPipeline {
         PipelineModel bestModel = (PipelineModel) model.bestModel();
         Transformer[] stages = bestModel.stages();
 
-        modelStatistics.put("Best sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
+        modelStatistics.put("Sentences in verse", ((Verser) stages[7]).getSentencesInVerse());
         modelStatistics.put("Word2Vec vocabulary", ((Word2VecModel) stages[8]).getVectors().count());
-        modelStatistics.put("Best vector size", ((Word2VecModel) stages[8]).getVectorSize());
+        modelStatistics.put("Vector size", ((Word2VecModel) stages[8]).getVectorSize());
         modelStatistics.put("Weights", ((MultilayerPerceptronClassificationModel) stages[9]).weights());
         printModelStatistics(modelStatistics);
 
