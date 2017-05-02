@@ -12,6 +12,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.Option;
 
 public class Verser extends Transformer implements MLWritable {
 
@@ -30,7 +31,7 @@ public class Verser extends Transformer implements MLWritable {
     public Dataset<Row> transform(Dataset<?> sentences) {
         Dataset<Row> verses = sentences.withColumn(
                 verseId,
-                functions.floor(functions.column(Column.ROW_NUMBER.getName()).minus(1).divide(get(sentencesInVerse()).get())).plus(1)
+                functions.floor(functions.column(Column.ROW_NUMBER.getName()).minus(1).divide(getSentencesInVerse())).plus(1)
         );
 
         verses = verses.groupBy(Column.ID.getName(), verseId).agg(
@@ -66,7 +67,8 @@ public class Verser extends Transformer implements MLWritable {
     }
 
     public Integer getSentencesInVerse() {
-        return (Integer) get(sentencesInVerse()).get();
+        final Option<Object> sentencesInVerse = get(sentencesInVerse());
+        return sentencesInVerse.isEmpty() ? 1 : (Integer) sentencesInVerse.get();
     }
 
     @Override

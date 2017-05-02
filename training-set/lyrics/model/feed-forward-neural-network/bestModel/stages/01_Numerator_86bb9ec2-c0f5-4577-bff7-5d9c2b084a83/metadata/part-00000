@@ -1,1 +1,1 @@
-{"class":"com.lohika.morning.ml.spark.driver.service.lyrics.transformer.Numerator","timestamp":1486910653461,"sparkVersion":"2.0.1","uid":"Numerator_86bb9ec2-c0f5-4577-bff7-5d9c2b084a83","paramMap":{}}
+{"class":"com.lohika.morning.ml.spark.driver.service.verse1.transformer.Numerator","timestamp":1486910653461,"sparkVersion":"2.0.1","uid":"Numerator_86bb9ec2-c0f5-4577-bff7-5d9c2b084a83","paramMap":{}}

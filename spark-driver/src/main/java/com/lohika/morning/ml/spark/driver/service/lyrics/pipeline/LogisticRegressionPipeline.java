@@ -19,13 +19,14 @@ import org.apache.spark.ml.tuning.CrossValidator;
 import org.apache.spark.ml.tuning.CrossValidatorModel;
 import org.apache.spark.ml.tuning.ParamGridBuilder;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.springframework.stereotype.Component;
 
 @Component("LogisticRegressionPipeline")
 public class LogisticRegressionPipeline extends CommonLyricsPipeline {
 
     public CrossValidatorModel classify() {
-        Dataset sentences = readLyrics();
+        Dataset<Row> sentences = readLyrics();
 
         // Remove all punctuation symbols.
         Cleanser cleanser = new Cleanser();

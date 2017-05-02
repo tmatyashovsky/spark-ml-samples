@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 public abstract class CommonLyricsPipeline implements LyricsPipeline {
 
     @Autowired
-    private SparkSession sparkSession;
+    protected SparkSession sparkSession;
 
     @Autowired
     private MLService mlService;
@@ -35,8 +35,9 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
         Dataset<String> lyricsDataset = sparkSession.createDataset(Arrays.asList(lyrics),
            Encoders.STRING());
 
-        Dataset<Row> unknownLyricsDataset = lyricsDataset.withColumn(LABEL.getName(), functions.lit(Genre.UNKNOWN.getValue()))
-          .withColumn(ID.getName(), functions.lit("unknown.txt"));
+        Dataset<Row> unknownLyricsDataset = lyricsDataset
+                .withColumn(LABEL.getName(), functions.lit(Genre.UNKNOWN.getValue()))
+                .withColumn(ID.getName(), functions.lit("unknown.txt"));
 
         CrossValidatorModel model = mlService.loadCrossValidationModel(getModelDirectory());
         getModelStatistics(model);
@@ -62,7 +63,7 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
         return new GenrePrediction(getGenre(prediction).getName());
     }
 
-    protected Dataset<Row> readLyrics() {
+    Dataset<Row> readLyrics() {
         Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL)
                                                 .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP));
         // Reduce the input amount of partition minimal amount (spark.default.parallelism OR 2, whatever is less)
@@ -113,14 +114,18 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
         return modelStatistics;
     }
 
-    protected void printModelStatistics(Map<String, Object> modelStatistics) {
+    void printModelStatistics(Map<String, Object> modelStatistics) {
         System.out.println("\n------------------------------------------------");
         System.out.println("Model statistics:");
         System.out.println(modelStatistics);
         System.out.println("------------------------------------------------\n");
     }
 
-    protected void saveModel(CrossValidatorModel model, String modelOutputDirectory) {
+    void saveModel(CrossValidatorModel model, String modelOutputDirectory) {
+        this.mlService.saveModel(model, modelOutputDirectory);
+    }
+
+    void saveModel(PipelineModel model, String modelOutputDirectory) {
         this.mlService.saveModel(model, modelOutputDirectory);
     }
 
@@ -134,7 +139,7 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
 
     protected abstract String getModelDirectory();
 
-    protected String getLyricsModelDirectoryPath() {
+    String getLyricsModelDirectoryPath() {
         return lyricsModelDirectoryPath;
     }
 }

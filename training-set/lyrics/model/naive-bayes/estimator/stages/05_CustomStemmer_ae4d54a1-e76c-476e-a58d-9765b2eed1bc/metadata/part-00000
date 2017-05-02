@@ -1,1 +1,1 @@
-{"class":"com.lohika.morning.ml.spark.driver.service.lyrics.transformer.Stemmer","timestamp":1486894696469,"sparkVersion":"2.0.1","uid":"CustomStemmer_ae4d54a1-e76c-476e-a58d-9765b2eed1bc","paramMap":{}}
+{"class":"com.lohika.morning.ml.spark.driver.service.verse1.transformer.Stemmer","timestamp":1486894696469,"sparkVersion":"2.0.1","uid":"CustomStemmer_ae4d54a1-e76c-476e-a58d-9765b2eed1bc","paramMap":{}}

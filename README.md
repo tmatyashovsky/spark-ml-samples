@@ -28,10 +28,10 @@ Nuances:
 * Dense vector is ok  
 
 ### Pop vs. Heavy Metal
-Given verse from lyrics recognize genre.
+Given verse from verse1 recognize genre.
 
 Strategy:
-* Collect raw data set of lyrics (~65k sentences in total):
+* Collect raw data set of verse1 (~65k sentences in total):
   * Abba, Ace of base, Backstreet Boys, Britney Spears, Christina Aguilera, Madonna, etc.
   * Black Sabbath, In Flames, Iron Maiden, Metallica, Moonspell, Nightwish, Sentenced, etc.
 * Create training set, i.e. label (0|1) + features
@@ -82,8 +82,8 @@ dou.training.set.csv.file.path=<path_to_your_repo>/training-set/dou/2016_may_min
 dou.regression.model.directory.path=<path_to_your_repo>/training-set/dou/regression-model
 dou.clustering.model.directory.path=<path_to_your_repo>/training-set/dou/clustering-model
 
-lyrics.training.set.directory.path=<path_to_your_repo>/training-set/lyrics/
-lyrics.model.directory.path=<path_to_your_repo>/training-set/lyrics/model
+verse1.training.set.directory.path=<path_to_your_repo>/training-set/verse1/
+verse1.model.directory.path=<path_to_your_repo>/training-set/verse1/model
 
 mnist.training.set.image.file.path=<path_to_your_repo>/training-set/mnist/train-images-idx3-ubyte
 mnist.training.set.label.file.path=<path_to_your_repo>/training-set/mnist/train-labels-idx1-ubyte

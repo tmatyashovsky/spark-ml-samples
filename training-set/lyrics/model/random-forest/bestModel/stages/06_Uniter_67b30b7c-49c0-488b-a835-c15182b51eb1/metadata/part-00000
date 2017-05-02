@@ -1,1 +1,1 @@
-{"class":"com.lohika.morning.ml.spark.driver.service.lyrics.transformer.Uniter","timestamp":1486983899962,"sparkVersion":"2.0.1","uid":"Uniter_67b30b7c-49c0-488b-a835-c15182b51eb1","paramMap":{}}
+{"class":"com.lohika.morning.ml.spark.driver.service.verse1.transformer.Uniter","timestamp":1486983899962,"sparkVersion":"2.0.1","uid":"Uniter_67b30b7c-49c0-488b-a835-c15182b51eb1","paramMap":{}}
