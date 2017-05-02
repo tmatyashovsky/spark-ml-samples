@@ -34,9 +34,9 @@ public class Word2VecController {
         return new ResponseEntity<>(synonyms, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/similarities", method = RequestMethod.POST)
-    ResponseEntity<List<Similarity>> calculateSimilarities(@RequestBody String lyrics) {
-        List<Similarity> similarities = word2VecService.calculatesimilarities(lyrics);
+    @RequestMapping(value = "/similarity", method = RequestMethod.POST)
+    ResponseEntity<List<Similarity>> calculateSimilarity(@RequestBody String lyrics) {
+        List<Similarity> similarities = word2VecService.calculateSimilarity(lyrics);
 
         return new ResponseEntity<>(similarities, HttpStatus.OK);
     }

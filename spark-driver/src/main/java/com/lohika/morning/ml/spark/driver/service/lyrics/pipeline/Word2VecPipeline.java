@@ -5,12 +5,8 @@ import com.lohika.morning.ml.spark.driver.service.lyrics.Genre;
 import com.lohika.morning.ml.spark.driver.service.lyrics.transformer.*;
 import com.lohika.morning.ml.spark.driver.service.lyrics.word2vec.Similarity;
 import com.lohika.morning.ml.spark.driver.service.lyrics.word2vec.Synonym;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -24,6 +20,7 @@ import org.apache.spark.sql.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import scala.collection.mutable.WrappedArray;
 
 @Component
 public class Word2VecPipeline extends CommonLyricsPipeline {
@@ -96,7 +93,7 @@ public class Word2VecPipeline extends CommonLyricsPipeline {
                                        .collect(Collectors.toList());
     }
 
-    public List<Similarity> calculateSimilarities(String lyrics) {
+    public List<Similarity> calculateSimilarity(String lyrics) {
         String verses[] = lyrics.split("\\r?\\n");
         Dataset<String> versesDataset = sparkSession.createDataset(Arrays.asList(verses),
             Encoders.STRING());
@@ -108,21 +105,28 @@ public class Word2VecPipeline extends CommonLyricsPipeline {
                 .withColumn(ID.getName(), functions.lit("unknown.txt"));
 
         Dataset<Row> word2Vec = pipelineModel.transform(dataset);
-        List<Row> features = word2Vec.select("features").collectAsList();
-        double[] toCompareWith = getVector(features.get(0));
+        final List<Row> features = word2Vec.select("verse", "features").collectAsList();
 
-        final List<Double> similarities = features.stream()
-                .map(this::getVector)
-                .map(vector -> cosineSimilarity(toCompareWith, vector))
-                .collect(Collectors.toList());
+        List<Similarity> similarities = new ArrayList<>();
 
-        return IntStream.range(0, verses.length)
-                .mapToObj(verseIndex -> new Similarity(verses[0], verses[verseIndex], similarities.get(verseIndex)))
-                .collect(Collectors.toList());
+        for (Row leftFeature : features) {
+            for (Row rightFeature : features) {
+                similarities.add(new Similarity(getVerse(leftFeature), getVerse(rightFeature),
+                                 cosineSimilarity(getVector(leftFeature), getVector(rightFeature))));
+            }
+        }
+
+        return similarities;
     }
 
     private double[] getVector(Row row) {
         return ((DenseVector)row.getAs("features")).toArray();
+    }
+
+    private String getVerse(Row row) {
+        String[] verse = (String[]) ((WrappedArray)row.getAs("verse")).array();
+
+        return Arrays.stream(verse).collect(Collectors.joining(" "));
     }
 
     private double cosineSimilarity(double[] leftVector, double[] rightVector) {

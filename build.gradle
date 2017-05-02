@@ -26,9 +26,9 @@ ext {
   logbackVersion = '1.2.1'
   sparkJacksonVersion = '2.8.0'
 
-  apacheSparkVersion = '2.0.1'
+  apacheSparkVersion = '2.0.2'
   apacheSparkScalaVersion = '2.11'
 
   junitVersion = '4.12'
-  springFrameworkVersion = '4.3.3.RELEASE'
+  springFrameworkVersion = '4.3.6.RELEASE'
 }

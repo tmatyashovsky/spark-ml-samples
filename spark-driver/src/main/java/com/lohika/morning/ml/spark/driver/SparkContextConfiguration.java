@@ -1,5 +1,7 @@
 package com.lohika.morning.ml.spark.driver;
 
+import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,19 +17,22 @@ public class SparkContextConfiguration {
 
     @Bean
     public SparkSession sparkSession() {
-        return SparkSession
-                .builder()
-                .master(master)
-                .appName(applicationName)
-                .config("spark.cores.max", coresMax)
-                .config("spark.driver.memory", driverMemory)
-                .config("spark.executor.memory", executorMemory)
-                .config("spark.serializer", serializer)
-                .config("spark.kryoserializer.buffer.max", kryoserializerBufferMax)
-                .config("spark.kryo.registrationRequired", "false")
-                .config("spark.sql.shuffle.partitions", sqlShufflePartitions)
-                .config("spark.default.parallelism", defaultParallelism)
-                .getOrCreate();
+        SparkConf sparkConf = new SparkConf()
+                .setMaster(master)
+                .setAppName(applicationName)
+                .setJars(distributedLibraries)
+                .set("spark.cores.max", coresMax)
+                .set("spark.driver.memory", driverMemory)
+                .set("spark.executor.memory", executorMemory)
+                .set("spark.serializer", serializer)
+                .set("spark.kryoserializer.buffer.max", kryoserializerBufferMax)
+                .set("spark.kryo.registrationRequired", "false")
+                .set("spark.sql.shuffle.partitions", sqlShufflePartitions)
+                .set("spark.default.parallelism", defaultParallelism);
+
+        SparkContext sparkContext = new SparkContext(sparkConf);
+
+        return new SparkSession(sparkContext);
     }
 
     @Value("${spark.master}")

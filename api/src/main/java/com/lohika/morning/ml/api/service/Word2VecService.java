@@ -22,7 +22,7 @@ public class Word2VecService {
         return word2VecLyricsPipeline.findSynonyms(lyrics);
     }
 
-    public List<Similarity> calculatesimilarities(String lyrics) {
-        return word2VecLyricsPipeline.calculateSimilarities(lyrics);
+    public List<Similarity> calculateSimilarity(String lyrics) {
+        return word2VecLyricsPipeline.calculateSimilarity(lyrics);
     }
 }
