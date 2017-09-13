@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
-@PropertySource("classpath:spark-test.properties")
+@PropertySource({"classpath:spark-test.properties", "classpath:application-test.properties"})
 public class SparkContextTestConfiguration {
 
 }

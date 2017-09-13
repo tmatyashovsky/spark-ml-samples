@@ -28,33 +28,29 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
     public CrossValidatorModel classify() {
         Dataset<Row> sentences = readLyrics();
 
-        // Remove all punctuation symbols.
         Cleanser cleanser = new Cleanser();
 
-        // Add rowNumber based on it.
         Numerator numerator = new Numerator();
 
-        // Split into words.
         Tokenizer tokenizer = new Tokenizer()
                 .setInputCol(CLEAN.getName())
                 .setOutputCol(WORDS.getName());
 
-        // Remove stop words.
         StopWordsRemover stopWordsRemover = new StopWordsRemover()
                 .setInputCol(WORDS.getName())
                 .setOutputCol(FILTERED_WORDS.getName());
 
-        // Create as many rows as words. This is needed or Stemmer.
         Exploder exploder = new Exploder();
 
-        // Perform stemming.
         Stemmer stemmer = new Stemmer();
 
         Uniter uniter = new Uniter();
         Verser verser = new Verser();
 
-        // Create model.
-        Word2Vec word2Vec = new Word2Vec().setInputCol(VERSE.getName()).setOutputCol("features").setMinCount(0);
+        Word2Vec word2Vec = new Word2Vec()
+                                    .setInputCol(VERSE.getName())
+                                    .setOutputCol("features")
+                                    .setMinCount(0);
 
         LogisticRegression logisticRegression = new LogisticRegression();
 
@@ -71,7 +67,6 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
                         word2Vec,
                         logisticRegression});
 
-        // Use a ParamGridBuilder to construct a grid of parameters to search over.
         ParamMap[] paramGrid = new ParamGridBuilder()
                 .addGrid(verser.sentencesInVerse(), new int[]{4, 8, 16})
                 .addGrid(word2Vec.vectorSize(), new int[] {100, 200, 300})
@@ -85,7 +80,6 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
                 .setEstimatorParamMaps(paramGrid)
                 .setNumFolds(10);
 
-        // Run cross-validation, and choose the best set of parameters.
         CrossValidatorModel model = crossValidator.fit(sentences);
 
         saveModel(model, getModelDirectory());

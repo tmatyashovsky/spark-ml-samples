@@ -30,7 +30,7 @@
         <appender-ref ref="STDOUT" />
     </logger>
 
-    <logger name="org.apache.parquet.hadoop.ParquetRecordReader" level="error">
+    <logger name="org.apache.parquet" level="error">
         <appender-ref ref="STDOUT" />
     </logger>
 

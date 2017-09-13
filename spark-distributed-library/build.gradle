@@ -20,6 +20,13 @@ configurations {
     all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
 }
 
+configurations.all {
+    resolutionStrategy {
+        force "org.codehaus.janino:janino:$sparkJaninoVersion"
+        force "org.codehaus.janino:commons-compiler:$sparkJaninoVersion"
+    }
+}
+
 dependencies {
     // All Spark dependencies should not be in shadowJar.
     compile("org.apache.spark:spark-core_$apacheSparkScalaVersion:$apacheSparkVersion")

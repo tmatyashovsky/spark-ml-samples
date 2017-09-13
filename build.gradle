@@ -21,14 +21,15 @@ subprojects {
 
 // Definition of dependency versions.
 ext {
-  springBootVersion = '1.5.1.RELEASE'
-  slf4jVersion = '1.7.24'
-  logbackVersion = '1.2.1'
-  sparkJacksonVersion = '2.8.0'
+  springBootVersion = '1.5.6.RELEASE'
+  slf4jVersion = '1.7.25'
+  logbackVersion = '1.2.3'
+  sparkJacksonVersion = '2.8.9'
+  sparkJaninoVersion = '2.7.8'
 
-  apacheSparkVersion = '2.0.2'
+  apacheSparkVersion = '2.2.0'
   apacheSparkScalaVersion = '2.11'
 
   junitVersion = '4.12'
-  springFrameworkVersion = '4.3.6.RELEASE'
+  springFrameworkVersion = '4.3.11.RELEASE'
 }

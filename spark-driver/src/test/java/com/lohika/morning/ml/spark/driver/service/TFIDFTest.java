@@ -15,10 +15,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
-/**
- * Created by tmatyashovsky on 1/29/17.
- */
-public class Test1 extends BaseTest {
+public class TFIDFTest extends BaseTest {
 
     @Test
     public void test() {
@@ -36,25 +33,29 @@ public class Test1 extends BaseTest {
         Tokenizer tokenizer = new Tokenizer().setInputCol("sentence").setOutputCol("words");
         Dataset<Row> wordsData = tokenizer.transform(sentenceData);
 
-        int numFeatures = 32;
+        System.out.println("Words:\n");
+        System.out.println(wordsData.select("label", "words").collectAsList());
+        System.out.println("----------------");
+
+        int numFeatures = 5;
         HashingTF hashingTF = new HashingTF()
-                .setInputCol("words")
+                .setInputCol("sentence")
                 .setOutputCol("rawFeatures")
                 .setNumFeatures(numFeatures);
 
         Dataset<Row> featurizedData = hashingTF.transform(wordsData);
+        System.out.println("Raw Features:\n");
         System.out.println(featurizedData.select("label", "rawFeatures").collectAsList());
-
-
-// alternatively, CountVectorizer can also be used to get term frequency vectors
+        System.out.println("----------------");
 
         IDF idf = new IDF().setInputCol("rawFeatures").setOutputCol("features");
         IDFModel idfModel = idf.fit(featurizedData);
 
         Dataset<Row> rescaledData = idfModel.transform(featurizedData);
-//        rescaledData.select("label", "features").show();
 
+        System.out.println("Features:\n");
         System.out.println(rescaledData.select("label", "features").collectAsList());
+        System.out.println("----------------");
     }
 
 }
