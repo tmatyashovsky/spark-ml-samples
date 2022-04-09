@@ -2,11 +2,15 @@ package com.lohika.morning.ml.spark.driver.service.lyrics;
 
 public enum Genre {
 
-    METAL("Metal \\m//", 0D),
-
-    POP("Pop <(^.^)/", 1D),
-
-    UNKNOWN("Don\'t know :(", -1D);
+    METAL("METAL", 0D), // TODO Senthuran This will be the custom genre
+    POP("POP", 1D),
+    COUNTRY("COUNTRY", 2D),
+    BLUES("BLUES", 3D),
+    JAZZ("JAZZ", 4D),
+    REGGAE("REGGAE", 5D),
+    ROCK("ROCK", 6D),
+    HIPHOP("HIPHOP", 7D),
+    UNKNOWN("UNKNOWN", -1D);
 
     private final String name;
     private final Double value;

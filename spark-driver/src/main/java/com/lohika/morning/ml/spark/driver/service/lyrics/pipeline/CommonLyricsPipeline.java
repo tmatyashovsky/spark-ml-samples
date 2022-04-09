@@ -56,7 +56,8 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
             System.out.println("Probability: " + probability);
             System.out.println("------------------------------------------------\n");
 
-            return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1));
+            return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1), probability.apply(2), probability.apply(3), 
+                                    probability.apply(4), probability.apply(5), probability.apply(6), probability.apply(7));
         }
 
         System.out.println("------------------------------------------------\n");
@@ -64,8 +65,14 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
     }
 
     Dataset<Row> readLyrics() {
-        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL)
-                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP));
+        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL) // TODO Senthuran this is the custom genre
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.COUNTRY))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.BLUES))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.JAZZ))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.REGGAE))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.ROCK))
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.HIPHOP));
         // Reduce the input amount of partition minimal amount (spark.default.parallelism OR 2, whatever is less)
         input = input.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
         // Force caching.
@@ -85,8 +92,8 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
 
     private Dataset<Row> readLyrics(String inputDirectory, String path) {
         Dataset<String> rawLyrics = sparkSession.read().textFile(Paths.get(inputDirectory).resolve(path).toString());
-        rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).notEqual(""));
-        rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).contains(" "));
+        // rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).notEqual("")); // TODO senthuran Ignoring for the moment. should test with this enabled
+        // rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).contains(" ")); // TODO senthuran Ignoring for the moment. should test with this enabled
 
         // Add source filename column as a unique id.
         Dataset<Row> lyrics = rawLyrics.withColumn(ID.getName(), functions.input_file_name());

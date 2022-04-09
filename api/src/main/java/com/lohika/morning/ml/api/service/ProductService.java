@@ -12,10 +12,10 @@ public class ProductService {
     @Autowired
     private ProductMLService productMLService;
 
-    @Value("${product.training.set.csv.file.path}")
+    //@Value("${product.training.set.csv.file.path}") // TODO Senthuran Out of the scope. Not caring about this
     private String productTrainingSetCsvFilePath;
 
-    @Value("${product.test.set.csv.file.path}")
+    //@Value("${product.test.set.csv.file.path}") // TODO Senthuran Out of the scope. Not caring about this
     private String productTestSetCsvFilePath;
 
     public Map<String, Object> trainRandomForestClassifier() {

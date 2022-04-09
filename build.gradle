@@ -14,7 +14,9 @@ subprojects {
     mavenCentral()
 
     maven {
-      url "http://dl.bintray.com/spark-packages/maven"
+      // url "http://dl.bintray.com/spark-packages/maven"
+      // url "https://mvnrepository.com/artifact/"
+      url "https://repos.spark-packages.org"
     }
   }
 }

@@ -9,7 +9,7 @@ import org.apache.spark.ml.PipelineStage;
 import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.classification.LogisticRegression;
 import org.apache.spark.ml.classification.LogisticRegressionModel;
-import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator;
+import org.apache.spark.ml.evaluation.RegressionEvaluator;
 import org.apache.spark.ml.feature.StopWordsRemover;
 import org.apache.spark.ml.feature.Tokenizer;
 import org.apache.spark.ml.feature.Word2Vec;
@@ -76,7 +76,7 @@ public class LogisticRegressionPipeline extends CommonLyricsPipeline {
 
         CrossValidator crossValidator = new CrossValidator()
                 .setEstimator(pipeline)
-                .setEvaluator(new BinaryClassificationEvaluator())
+                .setEvaluator(new RegressionEvaluator())
                 .setEstimatorParamMaps(paramGrid)
                 .setNumFolds(10);
 
