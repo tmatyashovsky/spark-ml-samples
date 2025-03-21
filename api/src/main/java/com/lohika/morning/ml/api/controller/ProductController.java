@@ -1,3 +1,4 @@
+/*
 package com.lohika.morning.ml.api.controller;
 
 import com.lohika.morning.ml.api.service.ProductService;
@@ -23,3 +24,4 @@ public class ProductController {
         return new ResponseEntity<>(trainStatistics, HttpStatus.OK);
     }
 }
+*/

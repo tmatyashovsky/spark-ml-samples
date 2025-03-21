@@ -34,7 +34,7 @@ public class TFIDFTest extends BaseTest {
         Dataset<Row> wordsData = tokenizer.transform(sentenceData);
 
         System.out.println("Words:\n");
-        System.out.println(wordsData.select("label", "words").collectAsList());
+        System.out.println(wordsData.collectAsList());
         System.out.println("----------------");
 
         int numFeatures = 5;
@@ -43,9 +43,9 @@ public class TFIDFTest extends BaseTest {
                 .setOutputCol("rawFeatures")
                 .setNumFeatures(numFeatures);
 
-        Dataset<Row> featurizedData = hashingTF.transform(wordsData);
+        Dataset<Row> featurizedData = hashingTF.transform(wordsData.select("words").withColumnRenamed("words", "sentence"));
         System.out.println("Raw Features:\n");
-        System.out.println(featurizedData.select("label", "rawFeatures").collectAsList());
+        System.out.println(featurizedData.collectAsList());
         System.out.println("----------------");
 
         IDF idf = new IDF().setInputCol("rawFeatures").setOutputCol("features");
@@ -54,7 +54,7 @@ public class TFIDFTest extends BaseTest {
         Dataset<Row> rescaledData = idfModel.transform(featurizedData);
 
         System.out.println("Features:\n");
-        System.out.println(rescaledData.select("label", "features").collectAsList());
+        System.out.println(rescaledData.collectAsList());
         System.out.println("----------------");
     }
 

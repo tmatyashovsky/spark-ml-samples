@@ -4,10 +4,18 @@ import static com.lohika.morning.ml.spark.distributed.library.function.map.lyric
 import com.lohika.morning.ml.spark.driver.service.MLService;
 import com.lohika.morning.ml.spark.driver.service.lyrics.Genre;
 import com.lohika.morning.ml.spark.driver.service.lyrics.GenrePrediction;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.linalg.DenseVector;
 import org.apache.spark.ml.tuning.CrossValidatorModel;
@@ -64,14 +72,40 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
     }
 
     Dataset<Row> readLyrics() {
-        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL)
-                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP));
+        SplitCSVUsingTextFile(lyricsTrainingSetDirectoryPath);
+        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP)
+                                               .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.COUNTRY));
         // Reduce the input amount of partition minimal amount (spark.default.parallelism OR 2, whatever is less)
         input = input.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
         // Force caching.
         input.count();
 
         return input;
+    }
+
+    private void SplitCSVUsingTextFile(String inputDirectory) {
+        // Read the CSV as raw text
+        Dataset<Row> df = sparkSession.read().option("header", "true")   // First row as header
+                .option("inferSchema", "true")  // Automatically detect data types
+                .csv(Paths.get(inputDirectory).resolve("mendeley_dataset.csv").toString());
+
+        // Column to split by (change "category" to your column name)
+        String splitColumn = "genre";
+
+        // Get unique values in the column
+        df.select(splitColumn).distinct().collectAsList().forEach(row -> {
+            String value = row.getString(0);
+            Dataset<Row> filteredDF = df.filter(functions.col(splitColumn).equalTo(value));
+
+            // Save each partition as a separate CSV file
+            String outputPath = inputDirectory + value + "/";  // Output directory
+            filteredDF.write()
+                    .option("header", "true")
+                    .mode(SaveMode.Ignore)
+                    .csv(outputPath);
+
+            System.out.println("Saved: " + outputPath);
+        });
     }
 
     private Dataset<Row> readLyricsForGenre(String inputDirectory, Genre genre) {
@@ -84,14 +118,15 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
     }
 
     private Dataset<Row> readLyrics(String inputDirectory, String path) {
-        Dataset<String> rawLyrics = sparkSession.read().textFile(Paths.get(inputDirectory).resolve(path).toString());
+        /*Dataset<String> rawLyrics = sparkSession.read().textFile(Paths.get(inputDirectory).resolve(path).toString());
         rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).notEqual(""));
         rawLyrics = rawLyrics.filter(rawLyrics.col(VALUE.getName()).contains(" "));
 
         // Add source filename column as a unique id.
-        Dataset<Row> lyrics = rawLyrics.withColumn(ID.getName(), functions.input_file_name());
+        Dataset<Row> lyrics = rawLyrics.withColumn(ID.getName(), functions.input_file_name());*/
 
-        return lyrics;
+        return sparkSession.read().option("header", "true").option("inferSchema", "true")
+                .csv(Paths.get(inputDirectory).resolve(path).toString());
     }
 
     private Genre getGenre(Double value) {

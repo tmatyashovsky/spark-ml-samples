@@ -26,7 +26,10 @@ import org.springframework.stereotype.Component;
 public class LogisticRegressionPipeline extends CommonLyricsPipeline {
 
     public CrossValidatorModel classify() {
+
         Dataset<Row> sentences = readLyrics();
+
+        System.out.println("sentences"+sentences.count());
 
         Cleanser cleanser = new Cleanser();
 

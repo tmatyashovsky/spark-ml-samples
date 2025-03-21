@@ -34,7 +34,7 @@ dependencies {
     compile("org.apache.spark:spark-mllib_$apacheSparkScalaVersion:$apacheSparkVersion")
 
     compile("ch.qos.logback:logback-classic:$logbackVersion")
-    compile("master:spark-stemming_2.10:0.1.1")
+    compile("com.github.master:spark-stemming_2.10:0.2.1")
 }
 
 configurations {

@@ -1,3 +1,4 @@
+/*
 package com.lohika.morning.ml.spark.driver.service.lyrics.pipeline;
 
 import com.lohika.morning.ml.spark.driver.service.BaseTest;
@@ -13,5 +14,12 @@ public class NaiveBayesPipelineTest extends BaseTest {
     private MLService mlService;
 
 
+    public NaiveBayesBagOfWordsPipeline getNaiveBayesPipeline() {
+        return naiveBayesPipeline;
+    }
 
+    public MLService getMlService() {
+        return mlService;
+    }
 }
+*/
