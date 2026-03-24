@@ -1,1 +1,0 @@
-{"class":"org.apache.spark.ml.PipelineModel","timestamp":1471510954860,"sparkVersion":"2.0.0","uid":"pipeline_76e15ed86ebd","paramMap":{"stageUids":["DouRegressionFeatureExtractor_ab2cdebf-f7bb-4a01-b482-3c4eb736f76a","linReg_284533e9f2d7"]}}
